@@ -32,7 +32,7 @@ impl Repository {
                     .bind(timestamp)
                     .execute(&self.db_pool)
                     .await?;
-                
+
                 Ok(record_id)
             },
             Reading::DS18B20(reading) => {
