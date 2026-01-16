@@ -1,8 +1,10 @@
 mod api;
+mod status;
 
 pub async fn app() -> axum::Router {
     axum::Router::new()
         .route("/", axum::routing::get(get_root))
+        .nest("/status", status::status())
         .nest("/api", api::api())
 }
 

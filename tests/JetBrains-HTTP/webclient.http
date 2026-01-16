@@ -15,6 +15,31 @@ GET {{origin}}/
     });
 %}
 
+### GET server status
+GET {{origin}}/status
+
+> {%
+    client.test("Response status", function () {
+        let expected = 200;
+        let actual = response.status;
+        client.assert(expected === actual, `Expected status '${expected}', actual '${actual}'`);
+    });
+
+    client.test("Response Content-Type", function () {
+        let expected = "application/json";
+        let actual = response.contentType.mimeType;
+        client.assert(expected === actual, `Expected content type '${expected}', actual '${actual}'`);
+    });
+
+    client.test("Response body", function () {
+        let expected = {"message":"server is running","status":"ok","version":"0.1.0"};
+        let actual = response.body;
+        client.assert(expected.message === actual.message, `Expected body '${expected.message}', actual '${actual.message}'`);
+        client.assert(expected.status === actual.status, `Expected body '${expected.status}', actual '${actual.status}'`);
+        client.assert(expected.version === actual.version, `Expected body '${expected.version}', actual '${actual.version}'`);
+    });
+%}
+
 ### POST DS18B20 record
 POST {{origin}}/api/record
 Content-Type: application/json
