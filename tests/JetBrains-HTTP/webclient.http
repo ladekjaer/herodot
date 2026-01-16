@@ -40,20 +40,24 @@ GET {{origin}}/status
     });
 %}
 
-### POST DS18B20 record
+### PUT DS18B20 record
 < {%
     request.variables.set("record_id", $uuid);
     request.variables.set("timestamp", $isoTimestamp)
 %}
 
-POST {{origin}}/api/record
+PUT {{origin}}/api/record
 Content-Type: application/json
 
 {
     "id": "{{record_id}}",
-    "device_name": "0000003e33d5",
-    "raw_reading": 22375,
-    "timestamp": "{{timestamp}}"
+    "timestamp": "{{timestamp}}",
+    "reading": {
+        "DS18B20": {
+            "device_name": "0000003e33d5",
+            "raw_reading": 22375
+        }
+    }
 }
 
 > {%
