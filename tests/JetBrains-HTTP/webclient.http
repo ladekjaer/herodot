@@ -40,6 +40,47 @@ GET {{origin}}/status
     });
 %}
 
+### PUT BME280 record
+< {%
+    request.variables.set("record_id", $uuid);
+    request.variables.set("timestamp", $isoTimestamp)
+%}
+
+PUT {{origin}}/api/record
+Content-Type: application/json
+
+{
+    "id": "{{record_id}}",
+    "timestamp": "{{timestamp}}",
+    "reading": {
+        "BME280": {
+            "temperature": 22,
+            "pressure": 101000.01,
+            "humidity": 0.45
+        }
+    }
+}
+
+> {%
+    client.test("Response status", function () {
+        let expected = 201;
+        let actual = response.status;
+        client.assert(expected === actual, `Expected status '${expected}', actual '${actual}'`);
+    });
+
+    client.test("Response Content-Type", function () {
+        let expected = "application/json";
+        let actual = response.contentType.mimeType;
+        client.assert(expected === actual, `Expected content type '${expected}', actual '${actual}'`);
+    });
+
+    client.test("Response body", function () {
+        let expected = {"message": "record saved successfully", "id": "29b6ae59-8faa-4c42-b503-57cb10fe0508"};
+        let actual = response.body;
+        client.assert(expected.message === actual.message, `Expected body '${expected.message}', actual '${actual.message}'`);
+    });
+%}
+
 ### PUT DS18B20 record
 < {%
     request.variables.set("record_id", $uuid);

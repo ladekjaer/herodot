@@ -19,6 +19,22 @@ impl Repository {
         let reading = record.reading();
 
         match reading {
+            Reading::BME280(reading) => {
+                let temperature = reading.temperature();
+                let pressure = reading.pressure();
+                let humidity = reading.humidity();
+
+                sqlx::query(r#"INSERT INTO records.bme280 (id, temperature, pressure, humidity, timestamp) VALUES ($1, $2, $3, $4, $5)"#)
+                    .bind(record_id)
+                    .bind(temperature)
+                    .bind(pressure)
+                    .bind(humidity)
+                    .bind(timestamp)
+                    .execute(&self.db_pool)
+                    .await?;
+                
+                Ok(record_id)
+            },
             Reading::DS18B20(reading) => {
                 let device_name = reading.device_name();
                 let raw_reading = reading.raw_reading();
