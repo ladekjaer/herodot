@@ -41,14 +41,19 @@ GET {{origin}}/status
 %}
 
 ### POST DS18B20 record
+< {%
+    request.variables.set("record_id", $uuid);
+    request.variables.set("timestamp", $isoTimestamp)
+%}
+
 POST {{origin}}/api/record
 Content-Type: application/json
 
 {
-    "id": "29b6ae59-8faa-4c42-b503-57cb10fe0508",
+    "id": "{{record_id}}",
     "device_name": "0000003e33d5",
     "raw_reading": 22375,
-    "timestamp": "2026-01-16T12:34:56.123456Z"
+    "timestamp": "{{timestamp}}"
 }
 
 > {%

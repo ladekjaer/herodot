@@ -1,0 +1,16 @@
+services:
+  database:
+    image: postgres:latest
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_DB: herodot
+      POSTGRES_USER: webapp
+      POSTGRES_PASSWORD: password
+    volumes:
+      - ./database/initialization:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-U", "webapp"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
