@@ -1,7 +1,7 @@
+use rerec::Reading;
+use rerec::record::Record;
 use sqlx::PgPool;
 use uuid::Uuid;
-use crate::reading::Reading;
-use crate::record::Record;
 
 #[derive(Clone)]
 pub(crate) struct Repository {
@@ -34,7 +34,7 @@ impl Repository {
                     .await?;
 
                 Ok(record_id)
-            },
+            }
             Reading::DS18B20(reading) => {
                 let device_name = reading.device_name();
                 let raw_reading = reading.raw_reading();

@@ -489,8 +489,7 @@ name = "herodot"
 version = "0.1.0"
 dependencies = [
  "axum",
- "chrono",
- "serde",
+ "rerec",
  "serde_json",
  "sqlx",
  "tokio",
@@ -1089,6 +1088,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49f3fe0889e69e2ae9e41f4d6c4c0181701d00e4697b356fb1f74173a5e0ee27"
 dependencies = [
  "bitflags",
+]
+
+[[package]]
+name = "rerec"
+version = "0.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d09b3c3f15bb84aa3c9a4e884aacb9a2f640f46d382b41953a59ebbb5ab347a4"
+dependencies = [
+ "chrono",
+ "serde",
+ "uuid",
 ]
 
 [[package]]

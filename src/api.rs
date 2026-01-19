@@ -1,9 +1,9 @@
-use crate::record::Record;
 use crate::state::AppState;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::routing::put;
 use axum::{Json, Router};
+use rerec::record::Record;
 use serde_json::{json, Value};
 
 pub(crate) fn api() -> Router<AppState> {
