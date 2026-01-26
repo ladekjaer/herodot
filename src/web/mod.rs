@@ -1,13 +1,28 @@
+use axum::response::{Html, IntoResponse};
 use axum::Router;
 use crate::state::AppState;
 
-pub(crate) fn web() -> Router<AppState> {
-    Router::new()
-        .route("/", axum::routing::get(get_root))
+use lazy_static::lazy_static;
+
+lazy_static! {
+    pub static ref Tera: tera::Tera = match tera::Tera::new("templates/**/*") {
+        Ok(t) => t,
+        Err(e) => {
+            eprintln!("Tera initialization error: {}", e);
+            std::process::exit(1);
+        }
+    };
 }
 
-async fn get_root() -> &'static str {
-    "Herodot WebApp - Self hosting climate date repository"
+pub(crate) fn web() -> Router<AppState> {
+    Router::new()
+        .route("/", axum::routing::get(index))
+}
+
+async fn index() -> impl IntoResponse {
+    let context = tera::Context::new();
+    let output = Tera.render("index.html", &context).unwrap();
+    Html(output)
 }
 
 #[cfg(test)]
@@ -15,8 +30,12 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn test_get_root() {
-        let result = get_root().await;
-        assert_eq!(result, "Herodot WebApp - Self hosting climate date repository");
+    async fn test_index() {
+        let response = index().await.into_response();
+        assert_eq!(response.status(), axum::http::StatusCode::OK);
+
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let body_str = String::from_utf8(body.to_vec()).unwrap();
+        assert!(body_str.contains("<h1>Herodot WebApp - Self-hosting climate date repository</h1>"));
     }
 }
