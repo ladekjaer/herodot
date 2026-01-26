@@ -2,10 +2,19 @@ use rerec::Reading;
 use rerec::record::Record;
 use sqlx::PgPool;
 use uuid::Uuid;
+use sqlx::types::chrono;
 
 #[derive(Clone)]
 pub(crate) struct Repository {
     db_pool: PgPool,
+}
+
+#[derive(sqlx::FromRow, serde::Serialize)]
+pub(crate) struct Ds18b20Record {
+    pub id: Uuid,
+    pub device_name: String,
+    pub raw_reading: i32,
+    pub timestamp: chrono::DateTime<chrono::Utc>,
 }
 
 impl Repository {
@@ -50,5 +59,10 @@ impl Repository {
                 Ok(record_id)
             }
         }
+    }
+
+    pub(crate) async fn get_all_ds18b20_records(&self) -> Result<Vec<Ds18b20Record>, sqlx::Error> {
+        let records = sqlx::query_as::<_, Ds18b20Record>(r#"SELECT id, device_name, raw_reading, timestamp FROM records.ds18b20"#).fetch_all(&self.db_pool).await?;
+        Ok(records)
     }
 }

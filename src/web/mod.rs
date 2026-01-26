@@ -1,3 +1,4 @@
+use axum::extract::State;
 use axum::response::{Html, IntoResponse};
 use axum::Router;
 use crate::state::AppState;
@@ -17,11 +18,20 @@ lazy_static! {
 pub(crate) fn web() -> Router<AppState> {
     Router::new()
         .route("/", axum::routing::get(index))
+        .route("/ds18b20", axum::routing::get(ds18b20))
 }
 
 async fn index() -> impl IntoResponse {
     let context = tera::Context::new();
     let output = Tera.render("index.html", &context).unwrap();
+    Html(output)
+}
+
+async fn ds18b20(State(state): State<AppState>) -> impl IntoResponse {
+    let mut context = tera::Context::new();
+    let records = state.repository.get_all_ds18b20_records().await.unwrap();
+    context.insert("records", &records);
+    let output = Tera.render("ds18b20.html", &context).unwrap();
     Html(output)
 }
 

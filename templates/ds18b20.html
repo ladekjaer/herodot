@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+    <h1>DS18B20 records</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Device</th>
+                <th>Temperature</th>
+                <th>Timestamp</th>
+                <th>Record ID</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for record in records %}
+            <tr>
+                <td>{{ record.device_name }}</td>
+                <td>{{ record.raw_reading }}</td>
+                <td>{{ record.timestamp }}</td>
+                <td>{{ record.id }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% endblock content %}
