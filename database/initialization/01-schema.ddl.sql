@@ -14,3 +14,11 @@ CREATE TABLE records.ds18b20 (
     raw_reading integer NOT NULL,
     timestamp timestamp with time zone NOT NULL
 );
+
+CREATE SCHEMA auth;
+
+CREATE TABLE auth.users (
+    id uuid PRIMARY KEY,
+    username text NOT NULL UNIQUE,
+    password text NOT NULL
+);

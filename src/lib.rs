@@ -2,6 +2,7 @@ mod api;
 mod repository;
 mod state;
 mod status;
+mod user;
 mod web;
 
 pub async fn app(db_pool: sqlx::PgPool) -> axum::Router {

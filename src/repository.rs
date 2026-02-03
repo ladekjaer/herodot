@@ -3,6 +3,7 @@ use rerec::record::Record;
 use sqlx::PgPool;
 use uuid::Uuid;
 use sqlx::types::chrono;
+use crate::user::User;
 
 #[derive(Clone)]
 pub(crate) struct Repository {
@@ -64,5 +65,14 @@ impl Repository {
     pub(crate) async fn get_all_ds18b20_records(&self) -> Result<Vec<Ds18b20Record>, sqlx::Error> {
         let records = sqlx::query_as::<_, Ds18b20Record>(r#"SELECT id, device_name, raw_reading, timestamp FROM records.ds18b20"#).fetch_all(&self.db_pool).await?;
         Ok(records)
+    }
+
+    pub(crate) async fn get_user_by_username(&self, username: &str) -> Result<User, sqlx::Error> {
+        let user = sqlx::query_as::<_, User>(r#"SELECT id, username, password FROM auth.users WHERE username = $1"#)
+            .bind(username)
+            .fetch_one(&self.db_pool)
+            .await?;
+
+        Ok(user)
     }
 }
