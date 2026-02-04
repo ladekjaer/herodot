@@ -3,7 +3,7 @@ use rerec::record::Record;
 use sqlx::PgPool;
 use uuid::Uuid;
 use sqlx::types::chrono;
-use crate::user::User;
+use crate::user::{User, UserError};
 
 #[derive(Clone)]
 pub(crate) struct Repository {
@@ -71,6 +71,18 @@ impl Repository {
         let user = sqlx::query_as::<_, User>(r#"SELECT id, username, password FROM auth.users WHERE username = $1"#)
             .bind(username)
             .fetch_one(&self.db_pool)
+            .await?;
+
+        Ok(user)
+    }
+
+    pub(crate) async fn create_user(&self, username: &str, password: &str) -> Result<User, sqlx::Error> {
+        let user = User::new(username.into(), password.into()).unwrap();
+        sqlx::query(r#"INSERT INTO auth.users (id, username, password) VALUES ($1, $2, $3);"#)
+            .bind(user.id())
+            .bind(user.username())
+            .bind(user.hashed_password())
+            .execute(&self.db_pool)
             .await?;
 
         Ok(user)

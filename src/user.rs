@@ -18,6 +18,9 @@ pub(crate) struct User {
 }
 
 impl User {
+    pub(crate) fn id(&self) -> &Uuid {
+        &self.id
+    }
     pub(crate) fn new(username: String, password: String) -> Result<Self, UserError> {
         let hashed_password = hash_password(password)?;
         Ok(Self { id: Uuid::new_v4(), username, hashed_password })
@@ -37,6 +40,14 @@ impl User {
         let argon2 = Argon2::default();
         let parsed_password_hash = PasswordHash::new(&self.hashed_password)?;
         Ok(argon2.verify_password(password.as_bytes(), &parsed_password_hash).is_ok())
+    }
+
+    pub fn username(&self) -> &str {
+        &self.username
+    }
+
+    pub fn hashed_password(&self) -> &str {
+        &self.hashed_password
     }
 }
 

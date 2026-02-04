@@ -3,10 +3,11 @@ use axum::extract::State;
 use axum::response::{Html, IntoResponse};
 use axum::routing::{get, post};
 use axum::{Form, Router};
-
-use crate::user::UserCredentials;
+use axum::http::StatusCode;
+use crate::user::{User, UserCredentials};
 use lazy_static::lazy_static;
 use serde::Deserialize;
+use sqlx::Error;
 
 lazy_static! {
     pub static ref Tera: tera::Tera = match tera::Tera::new("templates/**/*") {
@@ -23,6 +24,8 @@ pub(crate) fn web() -> Router<AppState> {
         .route("/", get(index))
         .route("/login", get(login))
         .route("/login", post(login_post))
+        .route("/create-user", get(create_user))
+        .route("/create-user", post(create_user_post))
         .route("/ds18b20", get(ds18b20))
 }
 
@@ -67,6 +70,37 @@ async fn login_post(State(state): State<AppState>, Form(credentials): Form<Login
         Err(err) => {
             eprintln!("REJECTED login attempt by user {}, due to: {}", username, err);
             Html(format!("Login failed for user: {}", username))
+        }
+    }
+}
+
+async fn create_user() -> impl IntoResponse {
+    let context = tera::Context::new();
+    let output = Tera.render("create-user.html", &context).unwrap();
+    Html(output)
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct UserCreationFormData {
+    username: String,
+    password: String,
+    #[serde(rename = "password-confirm")]
+    password_confirmation: String
+}
+
+async fn create_user_post(State(state): State<AppState>, Form(credentials): Form<UserCreationFormData>) -> impl IntoResponse {
+    if credentials.password != credentials.password_confirmation {
+        eprintln!("REJECTED user creation attempt: password confirmation does not match");
+        return (StatusCode::BAD_REQUEST, "Bad Request: Password confirmation must match password!");
+    }
+
+    match state.repository.create_user(&credentials.username, &credentials.password).await {
+        Ok(user) => {
+            (StatusCode::CREATED, "User created successfully")
+        }
+        Err(err) => {
+            eprintln!("REJECTED user creation attempt: {}", err);
+            (StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error: Could not create user!")
         }
     }
 }
