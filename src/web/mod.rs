@@ -57,7 +57,7 @@ async fn login_post(State(state): State<AppState>, Form(credentials): Form<Login
     match user {
         Ok(user) => {
             let credentials: UserCredentials = credentials.into();
-            if user.credentials_is(credentials) {
+            if user.credentials_is(credentials).unwrap() {
                 Html(format!("Login successful for user: {}", username))
             } else {
                 eprintln!("REJECTED login attempt by user {}: wrong credentials", username);
