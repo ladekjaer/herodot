@@ -23,9 +23,9 @@ pub(crate) fn web() -> Router<AppState> {
     Router::new()
         .route("/", get(index))
         .route("/login", get(login))
-        .route("/login", post(login_post))
-        .route("/create-user", get(create_user))
-        .route("/create-user", post(create_user_post))
+        .route("/users/login", post(login_post))
+        .route("/register", get(create_user))
+        .route("/users/register", post(create_user_post))
         .route("/ds18b20", get(ds18b20))
 }
 
@@ -76,7 +76,7 @@ async fn login_post(State(state): State<AppState>, Form(credentials): Form<Login
 
 async fn create_user() -> impl IntoResponse {
     let context = tera::Context::new();
-    let output = Tera.render("create-user.html", &context).unwrap();
+    let output = Tera.render("register.html", &context).unwrap();
     Html(output)
 }
 
