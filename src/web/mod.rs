@@ -1,6 +1,6 @@
 use crate::state::AppState;
 use axum::extract::State;
-use axum::response::{Html, IntoResponse};
+use axum::response::{Html, IntoResponse, Redirect};
 use axum::routing::{get, post};
 use axum::{Form, Router};
 use axum::http::StatusCode;
@@ -8,6 +8,7 @@ use crate::user::{User, UserCredentials};
 use lazy_static::lazy_static;
 use serde::Deserialize;
 use sqlx::Error;
+use tower_sessions::Session;
 
 lazy_static! {
     pub static ref Tera: tera::Tera = match tera::Tera::new("templates/**/*") {
@@ -26,6 +27,7 @@ pub(crate) fn web() -> Router<AppState> {
         .route("/users/login", post(login_post))
         .route("/register", get(create_user))
         .route("/users/register", post(create_user_post))
+        .route("/users/logout", get(logout))
         .route("/ds18b20", get(ds18b20))
 }
 
@@ -41,6 +43,11 @@ async fn login() -> impl IntoResponse {
     Html(output)
 }
 
+async fn logout(session: Session) -> impl IntoResponse {
+    session.delete().await.expect("Failed to delete session");
+    Redirect::to("/")
+}
+
 #[derive(Debug, Clone, Deserialize)]
 struct LoginFormData {
     username: String,
@@ -53,7 +60,7 @@ impl From<LoginFormData> for UserCredentials {
     }
 }
 
-async fn login_post(State(state): State<AppState>, Form(credentials): Form<LoginFormData>) -> impl IntoResponse {
+async fn login_post(session: Session, State(state): State<AppState>, Form(credentials): Form<LoginFormData>) -> impl IntoResponse {
     let username = credentials.username.clone();
     println!("Login attempt with username: {}", username);
     let user = state.repository.get_user_by_username(&credentials.username).await;
@@ -61,7 +68,17 @@ async fn login_post(State(state): State<AppState>, Form(credentials): Form<Login
         Ok(user) => {
             let credentials: UserCredentials = credentials.into();
             if user.credentials_is(credentials).unwrap() {
-                Html(format!("Login successful for user: {}", username))
+                match session.insert("user", user.clone()).await {
+                    Ok(_) => {
+                        println!("ACCEPTED login attempt by user {}", username);
+                        Html(format!("Login successful for user: {}", username))
+                    },
+                    Err(err) => {
+                        eprintln!("INTERNAL ERROR REJECTED login attempt by user {}: {}", username, err);
+                        Html(format!("INTERNAL ERROR Login failed for user: {}", username))
+                    }
+                }
+
             } else {
                 eprintln!("REJECTED login attempt by user {}: wrong credentials", username);
                 Html(format!("Login failed for user: {}", username))
