@@ -1,9 +1,12 @@
 use crate::state::AppState;
 use axum::extract::State;
+use axum::http::StatusCode;
 use axum::response::{Html, IntoResponse};
 use axum::routing::get;
 use axum::Router;
 use lazy_static::lazy_static;
+use tower_sessions::Session;
+use crate::user::User;
 use crate::user_api;
 
 lazy_static! {
@@ -19,16 +22,59 @@ lazy_static! {
 pub(crate) fn web() -> Router<AppState> {
     Router::new()
         .route("/", get(index))
+        .route("/me", get(me))
         .route("/login", get(login))
         .route("/register", get(create_user))
         .route("/ds18b20", get(ds18b20))
         .nest("/users",user_api::user_router())
 }
 
-async fn index() -> impl IntoResponse {
-    let context = tera::Context::new();
+async fn index(session: Session) -> impl IntoResponse {
+    let mut context = tera::Context::new();
+    match session.get::<User>("user").await {
+        Ok(user) => {
+            if let Some(user) = user {
+                context.insert("username", user.username());
+            }
+        }
+        Err(error) => {
+            eprintln!("Error getting user from session: {}", error);
+            return StatusCode::INTERNAL_SERVER_ERROR.into_response()
+        }
+    }
+
     let output = Tera.render("index.html", &context).unwrap();
-    Html(output)
+    Html(output).into_response()
+}
+
+async fn me(session: Session) -> impl IntoResponse {
+    let mut context = tera::Context::new();
+
+    let user = match session.get::<User>("user").await {
+        Ok(user) => user,
+        Err(error) => {
+            eprintln!("Error getting user from session: {}", error);
+            return StatusCode::INTERNAL_SERVER_ERROR.into_response()
+        }
+    };
+
+    let Some(user) = user else {
+        return StatusCode::UNAUTHORIZED.into_response();
+    };
+
+    context.insert("username", user.username());
+
+    let template = "me.html";
+
+    match Tera.render("me.html", &context) {
+        Ok(output) => {
+            Html(output).into_response()
+        },
+        Err(error) => {
+            eprintln!("Error rendering template ({}): {}", template, error);
+            StatusCode::INTERNAL_SERVER_ERROR.into_response()
+        }
+    }
 }
 
 async fn login() -> impl IntoResponse {

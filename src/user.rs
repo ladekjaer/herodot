@@ -21,6 +21,7 @@ impl User {
     pub(crate) fn id(&self) -> &Uuid {
         &self.id
     }
+
     pub(crate) fn new(username: String, password: String) -> Result<Self, UserError> {
         let hashed_password = hash_password(password)?;
         Ok(Self { id: Uuid::new_v4(), username, hashed_password })
