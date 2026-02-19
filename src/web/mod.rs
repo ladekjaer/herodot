@@ -24,7 +24,7 @@ pub(crate) fn web() -> Router<AppState> {
         .route("/", get(index))
         .route("/me", get(me))
         .route("/login", get(login))
-        .route("/register", get(create_user))
+        .route("/register", get(register))
         .route("/ds18b20", get(ds18b20))
         .nest("/users",user_api::user_router())
 }
@@ -83,7 +83,7 @@ async fn login() -> impl IntoResponse {
     Html(output)
 }
 
-async fn create_user() -> impl IntoResponse {
+async fn register() -> impl IntoResponse {
     let context = tera::Context::new();
     let output = Tera.render("register.html", &context).unwrap();
     Html(output)
@@ -102,12 +102,28 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn test_index() {
-        let response = index().await.into_response();
-        assert_eq!(response.status(), axum::http::StatusCode::OK);
+    async fn test_render_index() {
+        let page = Tera.render("index.html", &tera::Context::new()).unwrap();
+        assert!(page.contains("<h1>Herodot WebApp - Self-hosting climate date repository</h1>"));
+    }
+
+    #[tokio::test]
+    async fn test_login() {
+        let response = login().await.into_response();
+        assert_eq!(response.status(), StatusCode::OK);
 
         let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
         let body_str = String::from_utf8(body.to_vec()).unwrap();
-        assert!(body_str.contains("<h1>Herodot WebApp - Self-hosting climate date repository</h1>"));
+        assert!(body_str.contains("<h1>Login</h1>"));
+    }
+
+    #[tokio::test]
+    async fn test_register() {
+        let response = register().await.into_response();
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let body_str = String::from_utf8(body.to_vec()).unwrap();
+        assert!(body_str.contains("<h1>Create a new user account</h1>"));
     }
 }
