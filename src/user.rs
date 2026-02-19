@@ -33,7 +33,7 @@ impl User {
         }
         match self.password_matches(&credentials.password) {
             Ok(does_match) => Ok(does_match),
-            Err(error) => {Err(error.into())}
+            Err(error) => {Err(error)}
         }
     }
 
