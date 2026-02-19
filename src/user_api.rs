@@ -2,7 +2,7 @@ use crate::state::AppState;
 use crate::user::UserCredentials;
 use axum::extract::State;
 use axum::http::StatusCode;
-use axum::response::{Html, IntoResponse, Redirect};
+use axum::response::{IntoResponse, Redirect};
 use axum::routing::{get, post};
 use axum::{Form, Router};
 use serde::Deserialize;
@@ -62,23 +62,23 @@ async fn login(session: Session, State(state): State<AppState>, Form(credentials
             if user.credentials_is(credentials).unwrap() {
                 match session.insert("user", user.clone()).await {
                     Ok(_) => {
-                        println!("ACCEPTED login attempt by user {}", username);
-                        Html(format!("Login successful for user: {}", username))
+                        println!("USER LOGIN by user {}", username);
+                        Redirect::to("/")
                     },
                     Err(err) => {
-                        eprintln!("INTERNAL ERROR REJECTED login attempt by user {}: {}", username, err);
-                        Html(format!("INTERNAL ERROR Login failed for user: {}", username))
+                        eprintln!("USER LOGIN ERROR: Failed to save session data for user {}: {}", username, err);
+                        Redirect::to("/login?error=internal_error")
                     }
                 }
 
             } else {
-                eprintln!("REJECTED login attempt by user {}: wrong credentials", username);
-                Html(format!("Login failed for user: {}", username))
+                eprintln!("USER LOGIN REJECTED: Wrong credentials for by user: {}", username);
+                Redirect::to("/login?error=wrong_credentials")
             }
         },
         Err(err) => {
-            eprintln!("REJECTED login attempt by user {}, due to: {}", username, err);
-            Html(format!("Login failed for user: {}", username))
+            eprintln!("USER LOGIN ERROR: Failed to look up user: {}, due to: {}", username, err);
+            Redirect::to("/login?error=unable_to_lookup_user")
         }
     }
 }
