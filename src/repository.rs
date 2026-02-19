@@ -1,9 +1,9 @@
-use rerec::Reading;
+use crate::user::User;
 use rerec::record::Record;
+use rerec::Reading;
+use sqlx::types::chrono;
 use sqlx::PgPool;
 use uuid::Uuid;
-use sqlx::types::chrono;
-use crate::user::{User, UserError};
 
 #[derive(Clone)]
 pub(crate) struct Repository {
