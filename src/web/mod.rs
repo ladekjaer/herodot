@@ -89,12 +89,27 @@ async fn register() -> impl IntoResponse {
     Html(output)
 }
 
-async fn ds18b20(State(state): State<AppState>) -> impl IntoResponse {
+async fn ds18b20(session: Session, State(state): State<AppState>) -> impl IntoResponse {
     let mut context = tera::Context::new();
+
+    let user = match session.get::<User>("user").await {
+        Ok(user) => user,
+        Err(error) => {
+            eprintln!("Error getting user from session: {}", error);
+            return StatusCode::INTERNAL_SERVER_ERROR.into_response()
+        }
+    };
+
+    let Some(user) = user else {
+        return StatusCode::UNAUTHORIZED.into_response();
+    };
+
+    context.insert("username", user.username());
+
     let records = state.repository.get_all_ds18b20_records().await.unwrap();
     context.insert("records", &records);
     let output = Tera.render("ds18b20.html", &context).unwrap();
-    Html(output)
+    Html(output).into_response()
 }
 
 #[cfg(test)]
