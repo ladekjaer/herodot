@@ -1,11 +1,13 @@
 use crate::state::AppState;
-use axum::extract::State;
+use axum::extract::{FromRequestParts, State};
+use axum::http::request::Parts;
 use axum::http::StatusCode;
 use axum::response::{Html, IntoResponse};
 use axum::routing::get;
-use axum::Router;
+use axum::{Extension, RequestPartsExt, Router};
 use lazy_static::lazy_static;
 use tower_sessions::Session;
+use uuid::Uuid;
 use crate::user::User;
 use crate::user_api;
 
@@ -19,6 +21,52 @@ lazy_static! {
     };
 }
 
+struct AuthUser {
+    id: Uuid,
+    username: String,
+}
+
+impl AuthUser {
+    pub fn new(user: User) -> Self {
+        AuthUser {
+            id: user.id().clone(),
+            username: user.username().to_string(),
+        }
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
+    pub fn username(&self) -> &str {
+        &self.username
+    }
+}
+
+impl<S: Send + Sync> FromRequestParts<S> for AuthUser {
+    type Rejection = (StatusCode, &'static str);
+
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        let Extension(session) = parts.extract::<Extension<Session>>()
+            .await
+            .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Session not found"))?;
+
+        match session.get::<User>("user").await {
+            Ok(user) => {
+                if let Some(user) = user {
+                    Ok(AuthUser::new(user))
+                } else {
+                    Err((StatusCode::UNAUTHORIZED, "Unauthorized"))
+                }
+            }
+            Err(error) => {
+                eprintln!("Error getting user from session: {}", error);
+                Err((StatusCode::INTERNAL_SERVER_ERROR, "Session error"))
+            }
+        }
+    }
+}
+
 pub(crate) fn web() -> Router<AppState> {
     Router::new()
         .route("/", get(index))
@@ -29,44 +77,24 @@ pub(crate) fn web() -> Router<AppState> {
         .nest("/users",user_api::user_router())
 }
 
-async fn index(session: Session) -> impl IntoResponse {
+async fn index(user: Result<AuthUser, impl IntoResponse>) -> impl IntoResponse {
     let mut context = tera::Context::new();
-    match session.get::<User>("user").await {
-        Ok(user) => {
-            if let Some(user) = user {
-                context.insert("username", user.username());
-            }
-        }
-        Err(error) => {
-            eprintln!("Error getting user from session: {}", error);
-            return StatusCode::INTERNAL_SERVER_ERROR.into_response()
-        }
+    if let Ok(user) = user {
+        context.insert("username", user.username());
     }
 
     let output = Tera.render("index.html", &context).unwrap();
     Html(output).into_response()
 }
 
-async fn me(session: Session) -> impl IntoResponse {
+async fn me(user: AuthUser) -> impl IntoResponse {
     let mut context = tera::Context::new();
-
-    let user = match session.get::<User>("user").await {
-        Ok(user) => user,
-        Err(error) => {
-            eprintln!("Error getting user from session: {}", error);
-            return StatusCode::INTERNAL_SERVER_ERROR.into_response()
-        }
-    };
-
-    let Some(user) = user else {
-        return StatusCode::UNAUTHORIZED.into_response();
-    };
-
     context.insert("username", user.username());
+    context.insert("user_id", &user.id());
 
     let template = "me.html";
 
-    match Tera.render("me.html", &context) {
+    match Tera.render(template, &context) {
         Ok(output) => {
             Html(output).into_response()
         },
@@ -89,21 +117,8 @@ async fn register() -> impl IntoResponse {
     Html(output)
 }
 
-async fn ds18b20(session: Session, State(state): State<AppState>) -> impl IntoResponse {
+async fn ds18b20(user: AuthUser, State(state): State<AppState>) -> impl IntoResponse {
     let mut context = tera::Context::new();
-
-    let user = match session.get::<User>("user").await {
-        Ok(user) => user,
-        Err(error) => {
-            eprintln!("Error getting user from session: {}", error);
-            return StatusCode::INTERNAL_SERVER_ERROR.into_response()
-        }
-    };
-
-    let Some(user) = user else {
-        return StatusCode::UNAUTHORIZED.into_response();
-    };
-
     context.insert("username", user.username());
 
     let records = state.repository.get_all_ds18b20_records().await.unwrap();
