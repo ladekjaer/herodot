@@ -95,7 +95,7 @@ impl Repository {
             .bind(api_key.id())
             .bind(api_key.name())
             .bind(owner.id())
-            .bind(api_key.value())
+            .bind(api_key.token())
             .execute(&self.db_pool)
             .await?;
         Ok(())

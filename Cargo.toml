@@ -16,3 +16,5 @@ lazy_static = "1.5.0"
 argon2 = "0.5.3"
 tower-sessions = "0.14.0"
 tower-sessions-sqlx-store = { version = "0.15.0", features = ["postgres"] }
+rand = "0.10.0"
+base64 = "0.22.1"

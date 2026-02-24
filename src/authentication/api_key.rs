@@ -7,6 +7,7 @@ use axum::routing::post;
 use axum::{Form, Router};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use crate::authentication::token::Token;
 
 pub(crate) fn router() -> Router<AppState> {
     Router::new()
@@ -59,8 +60,8 @@ impl ApiKey {
         let id = Uuid::new_v4();
         let name = name.to_string();
         let owner = owner.to_string();
-        let value = Uuid::new_v4().to_string(); // TODO
-        Self { id, name, owner, token: value }
+        let token = Token::new().to_string();
+        Self { id, name, owner, token }
     }
 
     pub fn id(&self) -> Uuid {
@@ -75,7 +76,7 @@ impl ApiKey {
         &self.owner
     }
 
-    pub fn value(&self) -> &str {
-        &self.token
+    pub fn token(&self) -> String {
+        self.token.to_string()
     }
 }
