@@ -8,8 +8,8 @@ use axum::{Extension, RequestPartsExt, Router};
 use lazy_static::lazy_static;
 use tower_sessions::Session;
 use uuid::Uuid;
-use crate::user::User;
-use crate::user_api;
+use crate::authentication::user::User;
+use crate::authentication::user_api;
 
 lazy_static! {
     pub static ref Tera: tera::Tera = match tera::Tera::new("templates/**/*") {

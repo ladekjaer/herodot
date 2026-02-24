@@ -1,5 +1,5 @@
 use crate::state::AppState;
-use crate::user::UserCredentials;
+use crate::authentication::user::UserCredentials;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Redirect};

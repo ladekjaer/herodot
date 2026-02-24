@@ -1,13 +1,12 @@
 use tower_sessions::SessionManagerLayer;
 use tower_sessions_sqlx_store::PostgresStore;
+use authentication::api_key;
 
 mod api;
 mod authentication;
 mod repository;
 mod state;
 mod status;
-mod user;
-mod user_api;
 mod web;
 
 pub async fn app(db_pool: sqlx::PgPool) -> axum::Router {
@@ -23,7 +22,7 @@ pub async fn app(db_pool: sqlx::PgPool) -> axum::Router {
     axum::Router::new()
         .merge(web::web())
         .nest("/status", status::status())
-        .nest("/api_keys", authentication::router())
+        .nest("/api_keys", api_key::router())
         .nest("/api", api::api())
         .with_state(state)
         .layer(session_layer)

@@ -1,10 +1,10 @@
-use crate::user::User;
+use crate::authentication::user::User;
 use rerec::record::Record;
 use rerec::Reading;
 use sqlx::types::chrono;
 use sqlx::PgPool;
 use uuid::Uuid;
-use crate::authentication::ApiKey;
+use crate::authentication::api_key::ApiKey;
 
 #[derive(Clone)]
 pub(crate) struct Repository {
