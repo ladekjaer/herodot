@@ -47,7 +47,7 @@ pub(crate) struct ApiKey {
     id: Uuid,
     name: String,
     owner: String,
-    value: String,
+    token: String,
 }
 
 impl ApiKey {
@@ -56,7 +56,7 @@ impl ApiKey {
         let name = name.to_string();
         let owner = owner.to_string();
         let value = Uuid::new_v4().to_string(); // TODO
-        Self { id, name, owner, value }
+        Self { id, name, owner, token: value }
     }
 
     pub fn id(&self) -> Uuid {
@@ -72,6 +72,6 @@ impl ApiKey {
     }
 
     pub fn value(&self) -> &str {
-        &self.value
+        &self.token
     }
 }

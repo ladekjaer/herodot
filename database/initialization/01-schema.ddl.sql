@@ -26,6 +26,6 @@ CREATE TABLE auth.users (
 CREATE TABLE auth.api_keys (
     id uuid PRIMARY KEY,
     name text NOT NULL UNIQUE,
-    owner text NOT NULL,
-    value text NOT NULL UNIQUE
+    owner_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+    token text NOT NULL UNIQUE
 );

@@ -51,10 +51,6 @@ impl AuthTokenValue {
     pub fn new(token: String) -> Self {
         Self { value: token }
     }
-
-    pub fn token(&self) -> &str {
-        &self.value
-    }
 }
 
 impl<S: Send + Sync> FromRequestParts<S> for AuthTokenValue {

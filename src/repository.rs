@@ -4,7 +4,7 @@ use rerec::Reading;
 use sqlx::types::chrono;
 use sqlx::PgPool;
 use uuid::Uuid;
-use crate::api_key::ApiKey;
+use crate::authentication::ApiKey;
 
 #[derive(Clone)]
 pub(crate) struct Repository {
@@ -89,19 +89,20 @@ impl Repository {
         Ok(user)
     }
 
-    pub(crate) async fn create_api_key(&self, token: ApiKey) -> Result<(), sqlx::Error> {
-        sqlx::query(r#"INSERT INTO auth.api_keys (id, name, owner, value) VALUES ($1, $2, $3, $4);"#)
-            .bind(token.id())
-            .bind(token.name())
-            .bind(token.owner())
-            .bind(token.value())
+    pub(crate) async fn create_api_key(&self, api_key: ApiKey) -> Result<(), sqlx::Error> {
+        let owner = self.get_user_by_username(api_key.owner()).await?;
+        sqlx::query(r#"INSERT INTO auth.api_keys (id, name, owner_id, token) VALUES ($1, $2, $3, $4);"#)
+            .bind(api_key.id())
+            .bind(api_key.name())
+            .bind(owner.id())
+            .bind(api_key.value())
             .execute(&self.db_pool)
             .await?;
         Ok(())
     }
 
     pub(crate) async fn get_api_key_by_token(&self, token_value: String) -> Result<ApiKey, sqlx::Error> {
-        let token = sqlx::query_as::<_, ApiKey>(r#"SELECT id, name, owner, value FROM auth.api_keys WHERE value = $1;"#)
+        let token = sqlx::query_as::<_, ApiKey>(r#"SELECT id, name, owner_id, token FROM auth.api_keys WHERE token = $1;"#)
             .bind(token_value)
             .fetch_one(&self.db_pool)
             .await?;
@@ -109,7 +110,14 @@ impl Repository {
     }
 
     pub(crate) async fn list_api_keys(&self) -> Result<Vec<ApiKey>, sqlx::Error> {
-        let records = sqlx::query_as::<_, ApiKey>(r#"SELECT id, name, owner, value FROM auth.api_keys"#).fetch_all(&self.db_pool).await?;
+        let records = sqlx::query_as::<_, ApiKey>(r#"
+SELECT
+    keys.id, name, username as owner, token
+FROM
+    auth.api_keys keys
+    JOIN auth.users users ON keys.owner_id = users.id;
+            "#)
+            .fetch_all(&self.db_pool).await?;
         Ok(records)
     }
 }
