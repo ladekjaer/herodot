@@ -4,6 +4,7 @@ use rerec::Reading;
 use sqlx::types::chrono;
 use sqlx::PgPool;
 use uuid::Uuid;
+use crate::api_key::ApiKey;
 
 #[derive(Clone)]
 pub(crate) struct Repository {
@@ -86,5 +87,29 @@ impl Repository {
             .await?;
 
         Ok(user)
+    }
+
+    pub(crate) async fn create_api_key(&self, token: ApiKey) -> Result<(), sqlx::Error> {
+        sqlx::query(r#"INSERT INTO auth.api_keys (id, name, owner, value) VALUES ($1, $2, $3, $4);"#)
+            .bind(token.id())
+            .bind(token.name())
+            .bind(token.owner())
+            .bind(token.value())
+            .execute(&self.db_pool)
+            .await?;
+        Ok(())
+    }
+
+    pub(crate) async fn get_api_key_by_token(&self, token_value: String) -> Result<ApiKey, sqlx::Error> {
+        let token = sqlx::query_as::<_, ApiKey>(r#"SELECT id, name, owner, value FROM auth.api_keys WHERE value = $1;"#)
+            .bind(token_value)
+            .fetch_one(&self.db_pool)
+            .await?;
+        Ok(token)
+    }
+
+    pub(crate) async fn list_api_keys(&self) -> Result<Vec<ApiKey>, sqlx::Error> {
+        let records = sqlx::query_as::<_, ApiKey>(r#"SELECT id, name, owner, value FROM auth.api_keys"#).fetch_all(&self.db_pool).await?;
+        Ok(records)
     }
 }

@@ -21,7 +21,7 @@ lazy_static! {
     };
 }
 
-struct AuthUser {
+pub(crate) struct AuthUser {
     id: Uuid,
     username: String,
 }
@@ -73,6 +73,7 @@ pub(crate) fn web() -> Router<AppState> {
         .route("/me", get(me))
         .route("/login", get(login))
         .route("/register", get(register))
+        .route("/api_keys", get(api_keys))
         .route("/ds18b20", get(ds18b20))
         .nest("/users",user_api::user_router())
 }
@@ -114,6 +115,17 @@ async fn login() -> impl IntoResponse {
 async fn register() -> impl IntoResponse {
     let context = tera::Context::new();
     let output = Tera.render("register.html", &context).unwrap();
+    Html(output)
+}
+
+async fn api_keys(user: AuthUser, State(state): State<AppState>) -> impl IntoResponse {
+    let mut context = tera::Context::new();
+    context.insert("username", user.username());
+
+    let api_keys = state.repository.list_api_keys().await.unwrap();
+    context.insert("api_keys", &api_keys);
+
+    let output = Tera.render("api_keys.html", &context).unwrap();
     Html(output)
 }
 

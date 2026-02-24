@@ -22,3 +22,10 @@ CREATE TABLE auth.users (
     username text NOT NULL UNIQUE,
     password text NOT NULL
 );
+
+CREATE TABLE auth.api_keys (
+    id uuid PRIMARY KEY,
+    name text NOT NULL UNIQUE,
+    owner text NOT NULL,
+    value text NOT NULL UNIQUE
+);

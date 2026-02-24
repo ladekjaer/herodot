@@ -1,9 +1,11 @@
 use crate::state::AppState;
-use axum::extract::State;
+use axum::extract::{FromRequestParts, State};
 use axum::http::StatusCode;
 use axum::routing::put;
 use axum::{Json, Router};
+use axum::http::request::Parts;
 use rerec::record::Record;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 pub(crate) fn api() -> Router<AppState> {
@@ -12,9 +14,16 @@ pub(crate) fn api() -> Router<AppState> {
 }
 
 async fn put_record(
+    auth_token: AuthTokenValue,
     State(state): State<AppState>,
     Json(record): Json<Record>,
 ) -> (StatusCode, Json<Value>) {
+    if state.repository.get_api_key_by_token(auth_token.value).await.is_err() {
+        let response_message =
+            json!({"error": "invalid token", "description": "token not found"});
+        return (StatusCode::UNAUTHORIZED, Json(response_message));
+    }
+
     println!("RECORD PUT request: {:?}", record);
 
     match state.repository.commit_record(record).await {
@@ -29,6 +38,35 @@ async fn put_record(
             let response_message =
                 json!({"error": "database error", "description": error.to_string()});
             (StatusCode::INTERNAL_SERVER_ERROR, Json(response_message))
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct AuthTokenValue {
+    value: String,
+}
+
+impl AuthTokenValue {
+    pub fn new(token: String) -> Self {
+        Self { value: token }
+    }
+
+    pub fn token(&self) -> &str {
+        &self.value
+    }
+}
+
+impl<S: Send + Sync> FromRequestParts<S> for AuthTokenValue {
+    type Rejection = (StatusCode, &'static str);
+
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        parts.headers.remove(axum::http::header::AUTHORIZATION);
+        if let Some(key) = parts.headers.get("access_key") {
+            let auth_token = AuthTokenValue::new(key.to_str().unwrap().to_string());
+            Ok(auth_token)
+        } else {
+            Err((StatusCode::UNAUTHORIZED, "no authorization header"))
         }
     }
 }

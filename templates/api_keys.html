@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Auth Tokens for API access</h1>
+<table>
+    <thead>
+    <tr>
+        <th>Name</th>
+        <th>Id</th>
+        <th>Owner</th>
+        <th>Value</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for key in api_keys %}
+    <tr>
+        <td>{{ key.name }}</td>
+        <td>{{ key.id}}</td>
+        <td>{{ key.owner }}</td>
+        <td>{{ key.value }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+<form action="/api_keys" method="post">
+    <label for="name">Name for the new API key:</label>
+    <input type="text" id="name" name="name" required>
+    <label for="owner">Owner of the new API key:</label>
+    <input type="text" id="owner" name="owner" required readonly value="{{ username }}">
+    <br>
+    <button type="submit">Create</button>
+</form>
+{% endblock content %}

@@ -48,6 +48,7 @@ GET {{origin}}/status
 
 PUT {{origin}}/api/record
 Content-Type: application/json
+access_key: 99ea32d6-e0dc-4b2c-9802-6eaeaf55bbac
 
 {
     "id": "{{record_id}}",
@@ -89,6 +90,7 @@ Content-Type: application/json
 
 PUT {{origin}}/api/record
 Content-Type: application/json
+access_key: 99ea32d6-e0dc-4b2c-9802-6eaeaf55bbac
 
 {
     "id": "{{record_id}}",
