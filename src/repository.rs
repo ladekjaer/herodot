@@ -89,7 +89,7 @@ impl Repository {
         Ok(user)
     }
 
-    pub(crate) async fn create_api_key(&self, api_key: ApiKey) -> Result<(), sqlx::Error> {
+    pub(crate) async fn create_api_key(&self, api_key: &ApiKey) -> Result<(), sqlx::Error> {
         let owner = self.get_user_by_username(api_key.owner()).await?;
         sqlx::query(r#"INSERT INTO auth.api_keys (id, name, owner_id, token) VALUES ($1, $2, $3, $4);"#)
             .bind(api_key.id())

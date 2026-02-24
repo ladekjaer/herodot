@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>New API key</h1>
+<table>
+  <tbody>
+    <tr>
+      <th scope="col">Name</th>
+      <td>{{ key.name }}</td>
+    </tr>
+    <tr>
+      <th scope="col">Id</th>
+      <td>{{ key.id}}</td>
+    </tr>
+    <tr>
+      <th scope="col">Owner</th>
+      <td>{{ key.owner }}</td>
+    </tr>
+    <tr>
+      <th scope="col">Token</th>
+      <td>{{ key.token }}</td>
+    </tr>
+  </tbody>
+</table>
+{% endblock content %}

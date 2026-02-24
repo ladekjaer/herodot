@@ -1,12 +1,12 @@
+use crate::state::AppState;
+use crate::web::{AuthUser, Tera};
+use axum::extract::State;
+use axum::http::StatusCode;
+use axum::response::{Html, IntoResponse};
+use axum::routing::post;
+use axum::{Form, Router};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use axum::{Form, Router};
-use axum::routing::post;
-use axum::extract::State;
-use axum::response::IntoResponse;
-use axum::http::StatusCode;
-use crate::state::AppState;
-use crate::web::AuthUser;
 
 pub(crate) fn router() -> Router<AppState> {
     Router::new()
@@ -16,16 +16,20 @@ pub(crate) fn router() -> Router<AppState> {
 async fn create_api_key(user: AuthUser, State(state): State<AppState>, Form(api_key_form_data): Form<ApiKeyFormData>) -> impl IntoResponse {
     if user.username() != api_key_form_data.owner {
         eprintln!("REJECTED token creation attempt: owner does not match");
-        return (StatusCode::FORBIDDEN, "Creation of keys owner by other users is not allowed.");
+        return (StatusCode::FORBIDDEN, "Creation of keys owner by other users is not allowed.").into_response();
     }
     let key = ApiKey::from(api_key_form_data);
-    match state.repository.create_api_key(key).await {
+    match state.repository.create_api_key(&key).await {
         Ok(_) => {
-            (StatusCode::CREATED, "Token created successfully")
+            let mut context = tera::Context::new();
+            context.insert("username", user.username());
+            context.insert("key", &key);
+            let output = Tera.render("api_key.html", &context).unwrap();
+            (StatusCode::CREATED, Html(output)).into_response()
         }
         Err(error) => {
             eprintln!("Failed to create token: {}", error);
-            (StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error: Could not create token!")
+            (StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error: Could not create token!").into_response()
         }
     }
 }
