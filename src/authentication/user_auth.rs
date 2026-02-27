@@ -14,7 +14,7 @@ pub(crate) struct AuthUser {
 impl AuthUser {
     pub fn new(user: User) -> Self {
         AuthUser {
-            id: user.id().clone(),
+            id: *user.id(),
             username: user.username().to_string(),
         }
     }

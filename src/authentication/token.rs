@@ -15,7 +15,7 @@ impl Token {
         let mut bytes = [0u8; 32];
         rng.fill_bytes(&mut bytes);
 
-        let base64_encoded = BASE64_URL_SAFE_NO_PAD.encode(&bytes);
+        let base64_encoded = BASE64_URL_SAFE_NO_PAD.encode(bytes);
 
         Self { value: base64_encoded }
     }
@@ -33,8 +33,8 @@ impl From<String> for Token {
     }
 }
 
-impl Into<String> for Token {
-    fn into(self) -> String {
-        self.value
+impl From<Token> for String {
+    fn from(value: Token) -> Self {
+        value.value
     }
 }
