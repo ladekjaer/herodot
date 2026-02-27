@@ -1,5 +1,5 @@
 use crate::state::AppState;
-use crate::web::Tera;
+use crate::web::TERA;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::{Html, IntoResponse};
@@ -26,7 +26,7 @@ async fn create_api_key(user: AuthUser, State(state): State<AppState>, Form(api_
             let mut context = tera::Context::new();
             context.insert("username", user.username());
             context.insert("key", &key);
-            let output = Tera.render("api_key.html", &context).unwrap();
+            let output = TERA.render("api_key.html", &context).unwrap();
             (StatusCode::CREATED, Html(output)).into_response()
         }
         Err(error) => {

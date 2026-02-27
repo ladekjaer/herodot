@@ -687,7 +687,6 @@ dependencies = [
  "argon2",
  "axum",
  "base64",
- "lazy_static",
  "rand 0.10.0",
  "rerec",
  "serde",
