@@ -18,16 +18,11 @@ async fn put_record(
     State(state): State<AppState>,
     Json(record): Json<Record>,
 ) -> (StatusCode, Json<Value>) {
-    match state.repository.get_api_key_by_token(auth_token.value).await {
-        Ok(api_key) => {
-            println!("API key found: {:?}", api_key);
-        }
-        Err(error) => {
-            eprintln!("Error getting API key: {}", error);
-            let response_message =
-                json!({"error": "invalid token", "message": "token not found"});
-            return (StatusCode::UNAUTHORIZED, Json(response_message));
-        }
+    if let Err(error) = state.repository.get_api_key_by_token(auth_token.value).await {
+        eprintln!("Error getting API key: {}", error);
+        let response_message =
+            json!({"error": "invalid token", "message": "token not found"});
+        return (StatusCode::UNAUTHORIZED, Json(response_message));
     }
 
     println!("RECORD PUT request: {:?}", record);

@@ -102,7 +102,15 @@ impl Repository {
     }
 
     pub(crate) async fn get_api_key_by_token(&self, token_value: String) -> Result<ApiKey, sqlx::Error> {
-        let token = sqlx::query_as::<_, ApiKey>(r#"SELECT id, name, owner_id, token FROM auth.api_keys WHERE token = $1;"#)
+        let token = sqlx::query_as::<_, ApiKey>(r#"
+SELECT
+    keys.id, keys.name, users.username as owner, token
+FROM
+    auth.api_keys keys
+    JOIN auth.users users ON keys.owner_id = users.id
+WHERE
+    token = $1;
+"#)
             .bind(token_value)
             .fetch_one(&self.db_pool)
             .await?;
