@@ -8,16 +8,16 @@
     <header>
         <nav>
             <a href="/">Home</a>
-            {% if username %}
+            {% if username -%}
             <a href="/bme280">BME280</a>
             <a href="/ds18b20">DS18B20</a>
             <a href="/api_keys">API Keys</a>
             <a href="/me">{{ username }}</a>
             <a href="/users/logout">Logout</a>
-            {% else %}
+            {%- else -%}
             <a href="/login">Login</a>
             <a href="/register">Register</a>
-            {% endif %}
+            {%- endif %}
         </nav>
     </header>
     <div id="content">{% block content %}{% endblock content%}</div>
