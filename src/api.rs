@@ -13,7 +13,7 @@ use sqlx::Error;
 pub(crate) fn api() -> Router<AppState> {
     Router::new()
         .route("/records", get(get_records))
-        .route("/record", put(put_record))
+        .route("/records", put(put_record))
 }
 
 async fn get_records(State(state): State<AppState>) -> impl IntoResponse {

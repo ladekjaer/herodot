@@ -46,7 +46,7 @@ GET {{origin}}/status
     request.variables.set("timestamp", $isoTimestamp)
 %}
 
-PUT {{origin}}/api/record
+PUT {{origin}}/api/records
 Content-Type: application/json
 access_key: 99ea32d6-e0dc-4b2c-9802-6eaeaf55bbac
 
@@ -88,7 +88,7 @@ access_key: 99ea32d6-e0dc-4b2c-9802-6eaeaf55bbac
     request.variables.set("timestamp", $isoTimestamp)
 %}
 
-PUT {{origin}}/api/record
+PUT {{origin}}/api/records
 Content-Type: application/json
 access_key: 99ea32d6-e0dc-4b2c-9802-6eaeaf55bbac
 
@@ -142,6 +142,42 @@ POST {{origin}}/api/records
 > {%
     client.test("Response status", function () {
         let expected = 405;
+        let actual = response.status;
+        client.assert(expected === actual, `Expected status '${expected}', actual '${actual}'`);
+    });
+%}
+
+### GET record (singular!)
+
+GET {{origin}}/api/record
+
+> {%
+    client.test("Response status", function () {
+        let expected = 404;
+        let actual = response.status;
+        client.assert(expected === actual, `Expected status '${expected}', actual '${actual}'`);
+    });
+%}
+
+### POST record (singular!)
+
+POST {{origin}}/api/record
+
+> {%
+    client.test("Response status", function () {
+        let expected = 404;
+        let actual = response.status;
+        client.assert(expected === actual, `Expected status '${expected}', actual '${actual}'`);
+    });
+%}
+
+### PUT record (singular!)
+
+PUT {{origin}}/api/record
+
+> {%
+    client.test("Response status", function () {
+        let expected = 404;
         let actual = response.status;
         client.assert(expected === actual, `Expected status '${expected}', actual '${actual}'`);
     });
