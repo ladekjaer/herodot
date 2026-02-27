@@ -5,6 +5,8 @@ use axum::response::{Html, IntoResponse};
 use axum::routing::get;
 use axum::{Router};
 use lazy_static::lazy_static;
+use rerec::record::Record;
+use serde::{Deserialize, Serialize};
 use crate::authentication::user_api;
 use crate::authentication::user_auth::AuthUser;
 
@@ -25,6 +27,7 @@ pub(crate) fn web() -> Router<AppState> {
         .route("/login", get(login))
         .route("/register", get(register))
         .route("/api_keys", get(api_keys))
+        .route("/records", get(records))
         .route("/bme280", get(bme280))
         .route("/ds18b20", get(ds18b20))
         .nest("/users",user_api::user_router())
@@ -81,12 +84,23 @@ async fn api_keys(user: AuthUser, State(state): State<AppState>) -> impl IntoRes
     Html(output)
 }
 
+async fn records(user: AuthUser, State(state): State<AppState>) -> impl IntoResponse {
+    let mut context = tera::Context::new();
+    context.insert("username", user.username());
+
+    let records = state.repository.get_records().await.unwrap();
+    let records: Vec<RecordDisplay> = records.into_iter().map(|r| r.into()).collect();
+    context.insert("records", &records);
+    let output = Tera.render("records.html", &context).unwrap();
+    Html(output).into_response()
+}
+
 async fn bme280(user: AuthUser, State(state): State<AppState>) -> impl IntoResponse {
     let mut context = tera::Context::new();
     context.insert("username", user.username());
 
-    let recorts = state.repository.get_all_bme280_records().await.unwrap();
-    context.insert("records", &recorts);
+    let records = state.repository.get_all_bme280_records().await.unwrap();
+    context.insert("records", &records);
     let output = Tera.render("bme280.html", &context).unwrap();
     Html(output).into_response()
 }
@@ -129,5 +143,22 @@ mod tests {
         let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
         let body_str = String::from_utf8(body.to_vec()).unwrap();
         assert!(body_str.contains("<h1>Create a new user account</h1>"));
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct RecordDisplay {
+    pub id: String,
+    pub timestamp: String,
+    pub reading: String,
+}
+
+impl From<Record> for RecordDisplay {
+    fn from(value: Record) -> Self {
+        Self {
+            id: value.id().to_string(),
+            timestamp: value.timestamp().to_string(),
+            reading: value.reading().to_string(),
+        }
     }
 }
