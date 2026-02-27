@@ -1,5 +1,5 @@
 use crate::state::AppState;
-use crate::web::{AuthUser, Tera};
+use crate::web::Tera;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::{Html, IntoResponse};
@@ -8,6 +8,7 @@ use axum::{Form, Router};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use crate::authentication::token::Token;
+use crate::authentication::user_auth::AuthUser;
 
 pub(crate) fn router() -> Router<AppState> {
     Router::new()

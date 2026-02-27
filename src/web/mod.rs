@@ -1,15 +1,12 @@
 use crate::state::AppState;
-use axum::extract::{FromRequestParts, State};
-use axum::http::request::Parts;
+use axum::extract::{State};
 use axum::http::StatusCode;
 use axum::response::{Html, IntoResponse};
 use axum::routing::get;
-use axum::{Extension, RequestPartsExt, Router};
+use axum::{Router};
 use lazy_static::lazy_static;
-use tower_sessions::Session;
-use uuid::Uuid;
-use crate::authentication::user::User;
 use crate::authentication::user_api;
+use crate::authentication::user_auth::AuthUser;
 
 lazy_static! {
     pub static ref Tera: tera::Tera = match tera::Tera::new("templates/**/*") {
@@ -19,52 +16,6 @@ lazy_static! {
             std::process::exit(1);
         }
     };
-}
-
-pub(crate) struct AuthUser {
-    id: Uuid,
-    username: String,
-}
-
-impl AuthUser {
-    pub fn new(user: User) -> Self {
-        AuthUser {
-            id: user.id().clone(),
-            username: user.username().to_string(),
-        }
-    }
-
-    pub fn id(&self) -> Uuid {
-        self.id
-    }
-
-    pub fn username(&self) -> &str {
-        &self.username
-    }
-}
-
-impl<S: Send + Sync> FromRequestParts<S> for AuthUser {
-    type Rejection = (StatusCode, &'static str);
-
-    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        let Extension(session) = parts.extract::<Extension<Session>>()
-            .await
-            .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Session not found"))?;
-
-        match session.get::<User>("user").await {
-            Ok(user) => {
-                if let Some(user) = user {
-                    Ok(AuthUser::new(user))
-                } else {
-                    Err((StatusCode::UNAUTHORIZED, "Unauthorized"))
-                }
-            }
-            Err(error) => {
-                eprintln!("Error getting user from session: {}", error);
-                Err((StatusCode::INTERNAL_SERVER_ERROR, "Session error"))
-            }
-        }
-    }
 }
 
 pub(crate) fn web() -> Router<AppState> {

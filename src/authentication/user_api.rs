@@ -7,7 +7,6 @@ use axum::routing::{get, post};
 use axum::{Form, Router};
 use serde::Deserialize;
 use tower_sessions::Session;
-
 #[derive(Debug, Clone, Deserialize)]
 struct LoginFormData {
     username: String,
