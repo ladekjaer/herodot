@@ -8,7 +8,6 @@ use axum::response::IntoResponse;
 use rerec::record::Record;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use sqlx::Error;
 
 pub(crate) fn api() -> Router<AppState> {
     Router::new()
