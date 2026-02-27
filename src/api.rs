@@ -20,7 +20,7 @@ async fn put_record(
 ) -> (StatusCode, Json<Value>) {
     if state.repository.get_api_key_by_token(auth_token.value).await.is_err() {
         let response_message =
-            json!({"error": "invalid token", "description": "token not found"});
+            json!({"error": "invalid token", "message": "token not found"});
         return (StatusCode::UNAUTHORIZED, Json(response_message));
     }
 
@@ -36,7 +36,7 @@ async fn put_record(
         }
         Err(error) => {
             let response_message =
-                json!({"error": "database error", "description": error.to_string()});
+                json!({"error": "database error", "message": error.to_string()});
             (StatusCode::INTERNAL_SERVER_ERROR, Json(response_message))
         }
     }
