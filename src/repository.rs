@@ -1,3 +1,5 @@
+use rerec::bme280::BME280;
+use rerec::ds18b20::DS18B20;
 use crate::authentication::user::User;
 use rerec::record::Record;
 use rerec::Reading;
@@ -70,6 +72,32 @@ impl Repository {
                 Ok(record_id)
             }
         }
+    }
+
+    pub(crate) async fn get_records(&self) -> Result<Vec<Record>, sqlx::Error> {
+        let mut records: Vec<Record> = Vec::new();
+        let bme280_records = self.get_all_bme280_records().await?;
+        let ds18b20_records = self.get_all_ds18b20_records().await?;
+
+        records.extend(bme280_records
+            .into_iter()
+            .map(|r| {
+                let bme280_reading = BME280::new(r.temperature, r.pressure, r.humidity);
+                let reading = Reading::BME280(bme280_reading);
+                Record::new(r.id, r.timestamp, reading)
+            })
+        );
+
+        records.extend(ds18b20_records
+            .into_iter()
+            .map(|r| {
+                let ds18b20_reading = DS18B20::new(r.device_name, r.raw_reading);
+                let reading = Reading::DS18B20(ds18b20_reading);
+                Record::new(r.id, r.timestamp, reading)
+            })
+        );
+
+        Ok(records)
     }
     
     pub(crate) async fn get_all_bme280_records(&self) -> Result<Vec<Bme280Record>, sqlx::Error> {

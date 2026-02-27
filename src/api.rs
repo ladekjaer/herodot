@@ -1,16 +1,33 @@
 use crate::state::AppState;
 use axum::extract::{FromRequestParts, State};
 use axum::http::StatusCode;
-use axum::routing::put;
+use axum::routing::{get, put};
 use axum::{Json, Router};
 use axum::http::request::Parts;
+use axum::response::IntoResponse;
 use rerec::record::Record;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use sqlx::Error;
 
 pub(crate) fn api() -> Router<AppState> {
     Router::new()
+        .route("/records", get(get_records))
         .route("/record", put(put_record))
+}
+
+async fn get_records(State(state): State<AppState>) -> impl IntoResponse {
+    match state.repository.get_records().await {
+        Ok(records) => {
+            let response_message = json!({"records": records});
+            (StatusCode::OK, Json(response_message))
+        }
+        Err(error) => {
+            eprintln!("Error getting records: {}", error);
+            let response_message = json!({"error": "database error", "message": "retrieval failed"});
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(response_message))
+        }
+    }
 }
 
 async fn put_record(
