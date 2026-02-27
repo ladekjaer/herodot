@@ -122,3 +122,27 @@ access_key: 99ea32d6-e0dc-4b2c-9802-6eaeaf55bbac
         client.assert(expected.message === actual.message, `Expected body '${expected.message}', actual '${actual.message}'`);
     });
 %}
+
+### GET records
+
+GET {{origin}}/api/records
+
+> {%
+    client.test("Response status", function () {
+        let expected = 200;
+        let actual = response.status;
+        client.assert(expected === actual, `Expected status '${expected}', actual '${actual}'`);
+    });
+%}
+
+### POST records
+
+POST {{origin}}/api/records
+
+> {%
+    client.test("Response status", function () {
+        let expected = 405;
+        let actual = response.status;
+        client.assert(expected === actual, `Expected status '${expected}', actual '${actual}'`);
+    });
+%}
