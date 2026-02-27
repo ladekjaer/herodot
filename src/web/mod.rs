@@ -74,6 +74,7 @@ pub(crate) fn web() -> Router<AppState> {
         .route("/login", get(login))
         .route("/register", get(register))
         .route("/api_keys", get(api_keys))
+        .route("/bme280", get(bme280))
         .route("/ds18b20", get(ds18b20))
         .nest("/users",user_api::user_router())
 }
@@ -127,6 +128,16 @@ async fn api_keys(user: AuthUser, State(state): State<AppState>) -> impl IntoRes
 
     let output = Tera.render("api_keys.html", &context).unwrap();
     Html(output)
+}
+
+async fn bme280(user: AuthUser, State(state): State<AppState>) -> impl IntoResponse {
+    let mut context = tera::Context::new();
+    context.insert("username", user.username());
+
+    let recorts = state.repository.get_all_bme280_records().await.unwrap();
+    context.insert("records", &recorts);
+    let output = Tera.render("bme280.html", &context).unwrap();
+    Html(output).into_response()
 }
 
 async fn ds18b20(user: AuthUser, State(state): State<AppState>) -> impl IntoResponse {

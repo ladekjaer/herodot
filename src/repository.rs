@@ -19,6 +19,15 @@ pub(crate) struct Ds18b20Record {
     pub timestamp: chrono::DateTime<chrono::Utc>,
 }
 
+#[derive(sqlx::FromRow, serde::Serialize)]
+pub(crate) struct Bme280Record {
+    pub id: Uuid,
+    pub temperature: f32,
+    pub pressure: f32,
+    pub humidity: f32,
+    pub timestamp: chrono::DateTime<chrono::Utc>,
+}
+
 impl Repository {
     pub(crate) fn new(db_pool: PgPool) -> Self {
         Self { db_pool }
@@ -61,6 +70,11 @@ impl Repository {
                 Ok(record_id)
             }
         }
+    }
+    
+    pub(crate) async fn get_all_bme280_records(&self) -> Result<Vec<Bme280Record>, sqlx::Error> {
+        let records = sqlx::query_as::<_, Bme280Record>(r#"SELECT id, temperature, pressure, humidity, timestamp FROM records.bme280"#).fetch_all(&self.db_pool).await?;
+        Ok(records)
     }
 
     pub(crate) async fn get_all_ds18b20_records(&self) -> Result<Vec<Ds18b20Record>, sqlx::Error> {

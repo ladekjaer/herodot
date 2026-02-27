@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>BME280 records</h1>
+<table>
+    <thead>
+    <tr>
+        <th>Timestamp</th>
+        <th>Temperature</th>
+        <th>Pressure</th>
+        <th>Humidity</th>
+        <th>Record ID</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for record in records %}
+    <tr>
+        <td>{{ record.timestamp }}</td>
+        <td>{{ record.temperature }}</td>
+        <td>{{ record.pressure }}</td>
+        <td>{{ record.humidity }}</td>
+        <td>{{ record.id }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock content %}
