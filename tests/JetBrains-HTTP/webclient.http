@@ -181,4 +181,22 @@ PUT {{origin}}/api/record
         let actual = response.status;
         client.assert(expected === actual, `Expected status '${expected}', actual '${actual}'`);
     });
+
+    client.test("Response Content-Length", function () {
+        let expected = "0";
+        let actual = response.headers.valueOf( "Content-Length");
+        client.assert(expected === actual, `Expected content type '${expected}', actual '${actual}'`);
+    });
+
+    client.test("Response Content-Type", function () {
+        let expected = "text/plain";
+        let actual = response.contentType.mimeType;
+        client.assert(expected === actual, `Expected content type '${expected}', actual '${actual}'`);
+    });
+
+    client.test("Response body", function () {
+        let expected = null;
+        let actual = response.body;
+        client.assert(expected === actual, `Expected null, actual '${actual}'`);
+    });
 %}

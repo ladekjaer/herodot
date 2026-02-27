@@ -1504,9 +1504,9 @@ checksum = "a96887878f22d7bad8a3b6dc5b7440e0ada9a245242924394987b21cf2210a4c"
 
 [[package]]
 name = "rerec"
-version = "0.0.1"
+version = "0.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d09b3c3f15bb84aa3c9a4e884aacb9a2f640f46d382b41953a59ebbb5ab347a4"
+checksum = "e1961f9653756bd7e01ca97a84b1b0a53c80e5e020d7e41fbecd2ce1f0e247d6"
 dependencies = [
  "chrono",
  "serde",
