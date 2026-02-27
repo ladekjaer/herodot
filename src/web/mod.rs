@@ -1,14 +1,15 @@
 use crate::state::AppState;
-use axum::extract::{State};
+use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::{Html, IntoResponse};
 use axum::routing::get;
-use axum::{Router};
+use axum::Router;
 use lazy_static::lazy_static;
-use rerec::record::Record;
-use serde::{Deserialize, Serialize};
+use record_display::RecordDisplay;
 use crate::authentication::user_api;
 use crate::authentication::user_auth::AuthUser;
+
+mod record_display;
 
 lazy_static! {
     pub static ref Tera: tera::Tera = match tera::Tera::new("templates/**/*") {
@@ -143,22 +144,5 @@ mod tests {
         let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
         let body_str = String::from_utf8(body.to_vec()).unwrap();
         assert!(body_str.contains("<h1>Create a new user account</h1>"));
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct RecordDisplay {
-    pub id: String,
-    pub timestamp: String,
-    pub reading: String,
-}
-
-impl From<Record> for RecordDisplay {
-    fn from(value: Record) -> Self {
-        Self {
-            id: value.id().to_string(),
-            timestamp: value.timestamp().to_string(),
-            reading: value.reading().to_string(),
-        }
     }
 }
