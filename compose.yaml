@@ -1,4 +1,14 @@
 services:
+  server:
+    build: .
+    environment:
+      PORT: 8080
+      DATABASE_URL: postgres://webapp:password@database:5432/herodot
+    ports:
+      - "8080:8080"
+    depends_on:
+      database:
+        condition: service_healthy
   database:
     image: postgres:latest
     ports:
