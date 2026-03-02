@@ -1,0 +1,134 @@
+openapi: 3.1.1
+
+info:
+  title: Specialisterne Environment API
+  description:
+    API for Specialisterne Environment
+    The Web API specified here is used for educational purposes.
+  version: 1.0.0
+
+servers:
+  - url: https://climate.spac.dk/api
+    description: production server for the students to use
+  - url: http://localhost:8080/api/
+    description: local server for development
+
+security:
+  - defaultApiKey: [ ]
+
+components:
+  securitySchemes:
+    defaultApiKey:
+      type: apiKey
+      name: Authorization
+      in: header
+  schemas:
+    record:
+      summery: a measurement with a timestamp and a unique id
+      description:
+        In our terminology a record is a measurement with a timestamp and a unique id.
+        A measurement is a reading from a sensing instrument. The type of a records reading
+        depends on the type of instrument used to perform the measurement.
+      type: object
+      properties:
+        id:
+          description: a unique identifier for the record
+          type: string
+          format: uuid
+        timestamp:
+          description: the timestamp of the record
+          type: string
+          format: date-time
+        reading:
+          description: the actual reading data from the sensing instrument
+          type: enum
+          enum: [$ref: '#/components/schemas/BME280', $ref: '#/components/schemas/DS18B20']
+    BME280:
+      summery: a BME280 sensor reading
+      description:
+        a reading from a Bosch BME280 environment sensor.
+        If reads temperature, humidity and pressure sensor.
+        For a datasheet see [BME280](https://www.bosch-sensortec.com/products/environmental-sensors/humidity-sensors-bme280/).
+      type: object
+      properties:
+        temperature:
+          summary: the temperature reading from the sensor.
+          description:
+            the temperature reading from the sensor.
+            The temperature is reported in degrees Celsius.
+          type: number
+          format: float
+        pressure:
+          summary: the pressure reading from the sensor
+          description:
+            the pressure reading from the sensor.
+            The pressure is reported in Pascals (Pa).
+          type: number
+          format: float
+        humidity:
+          summary: the humidity reading from the sensor
+          description:
+            the relative humidity reading from the sensor.
+            The humidity is reported as a percentage.
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+    DS18B20:
+      summery: a DS18B20 sensor reading
+      description:
+        a reading from a DS18B20 temperature sensor;
+        for a datasheet see [DS18B20](https://www.analog.com/en/products/ds18b20.html)
+      type: object
+      properties:
+        device_name:
+          summary: the name of the device
+          description:
+            the unique name of the device.
+            The device name is included, as it is reported by the instrument, and it is unique for each individual DS18B20.
+            The device name is always 15 characters long.
+          type: string
+          minLength: 15
+          maxLength: 15
+        raw_reading:
+          summary: the actual reading from the sensor
+          description: the actual reading form the sensor as degrees millicelcius; the value is an integer of type i32, i.e. a 32-bits signed number
+          type: integer
+
+paths:
+  /records:
+    get:
+      summary: Get records
+      description: Get records from the database
+      responses:
+        '200':
+          description: A list of records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/record'
+    put:
+      summary: Add a record
+      description: Add a record to the database
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/record'
+      responses:
+        '201':
+          description: The record was added
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    description: A message indicating the success of the operation
+                    type: string
+                  id:
+                    description: the unique id of the added record
+                    type: string
+                    format: uuid
