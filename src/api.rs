@@ -1,5 +1,5 @@
 use crate::state::AppState;
-use axum::extract::{FromRequestParts, State};
+use axum::extract::{FromRequestParts, Path, State};
 use axum::http::request::Parts;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
@@ -10,11 +10,33 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sqlx::error::ErrorKind;
 use sqlx::Error;
+use uuid::Uuid;
 
 pub(crate) fn api() -> Router<AppState> {
     Router::new()
         .route("/records", get(get_records))
         .route("/records", put(put_record))
+        .route("/records/{record_id}", get(get_record))
+}
+
+async fn get_record(auth_token: AuthTokenValue, State(state): State<AppState>, Path(record_id): Path<Uuid>) -> impl IntoResponse {
+    if let Err(error) = auth_token.validate(&state).await {
+        return error;
+    }
+
+    match state.repository.get_record_by_id(record_id).await {
+        Ok(record) => {
+            match record {
+                None => {(StatusCode::NOT_FOUND, Json(json!({"error": "record not found", "message": "No record with the supplied id was found"})))}
+                Some(record) => {(StatusCode::OK, Json(json!({"record": record})))}
+            }
+        }
+        Err(error) => {
+            eprintln!("Error getting record: {}", error);
+            let response_message = json!({"error": "database error", "message": "retrieval failed"});
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(response_message))
+        }
+    }
 }
 
 async fn get_records(auth_token: AuthTokenValue, State(state): State<AppState>) -> impl IntoResponse {

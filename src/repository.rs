@@ -21,6 +21,12 @@ pub(crate) struct Ds18b20Record {
     pub timestamp: chrono::DateTime<chrono::Utc>,
 }
 
+impl From<Ds18b20Record> for Record {
+    fn from(value: Ds18b20Record) -> Self {
+        Record::new(value.id, value.timestamp, Reading::DS18B20(DS18B20::new(value.device_name, value.raw_reading)))
+    }
+}
+
 #[derive(sqlx::FromRow, serde::Serialize)]
 pub(crate) struct Bme280Record {
     pub id: Uuid,
@@ -28,6 +34,12 @@ pub(crate) struct Bme280Record {
     pub pressure: f32,
     pub humidity: f32,
     pub timestamp: chrono::DateTime<chrono::Utc>,
+}
+
+impl From<Bme280Record> for Record {
+    fn from(value: Bme280Record) -> Self {
+        Record::new(value.id, value.timestamp, Reading::BME280(BME280::new(value.temperature, value.pressure, value.humidity)))
+    }
 }
 
 impl Repository {
@@ -74,6 +86,20 @@ impl Repository {
         }
     }
 
+    pub(crate) async fn get_record_by_id(&self, record_id: Uuid) -> Result<Option<Record>, sqlx::Error> {
+        let bme280 = self.get_bme280_record_by_id(record_id).await?;
+        if let Some(bme280) = bme280 {
+            return Ok(Some(Record::from(bme280)))
+        }
+
+        let ds18b20 = self.get_ds18b20_record_by_id(record_id).await?;
+        if let Some(ds18b20) = ds18b20 {
+            return Ok(Some(Record::from(ds18b20)))
+        }
+
+        Ok(None)
+    }
+
     pub(crate) async fn get_records(&self) -> Result<Vec<Record>, sqlx::Error> {
         let mut records: Vec<Record> = Vec::new();
         let bme280_records = self.get_all_bme280_records().await?;
@@ -99,10 +125,28 @@ impl Repository {
 
         Ok(records)
     }
-    
+
+    pub(crate) async fn get_bme280_record_by_id(&self, record_id: Uuid) -> Result<Option<Bme280Record>, sqlx::Error> {
+        let record = sqlx::query_as::<_, Bme280Record>(r#"SELECT id, temperature, pressure, humidity, timestamp FROM records.bme280 WHERE id = $1"#)
+            .bind(record_id)
+            .fetch_optional(&self.db_pool)
+            .await?;
+
+        Ok(record)
+    }
+
     pub(crate) async fn get_all_bme280_records(&self) -> Result<Vec<Bme280Record>, sqlx::Error> {
         let records = sqlx::query_as::<_, Bme280Record>(r#"SELECT id, temperature, pressure, humidity, timestamp FROM records.bme280"#).fetch_all(&self.db_pool).await?;
         Ok(records)
+    }
+
+    pub(crate) async fn get_ds18b20_record_by_id(&self, record_id: Uuid) -> Result<Option<Ds18b20Record>, sqlx::Error> {
+        let record = sqlx::query_as::<_, Ds18b20Record>(r#"SELECT id, device_name, raw_reading, timestamp FROM records.ds18b20 WHERE id = $1"#)
+            .bind(record_id)
+            .fetch_optional(&self.db_pool)
+            .await?;
+
+        Ok(record)
     }
 
     pub(crate) async fn get_all_ds18b20_records(&self) -> Result<Vec<Ds18b20Record>, sqlx::Error> {

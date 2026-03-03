@@ -114,7 +114,6 @@ components:
         It includes a descriptive message.
       type: string
 
-
 paths:
   /records:
     get:
@@ -208,6 +207,31 @@ paths:
             Internal Server Error.
             A generic response indicating, that an unexpected error occurred.
             This may be due to a bug in the server or a temporary issue.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponseInJson'
+  /records/{record_id}:
+    get:
+      description: Success. Get a record by its identifier
+      responses:
+        200:
+          description: The record was found and returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/record'
+        401:
+          description:
+            Unauthorized.
+            The request did not contain a authorization header.
+            The response will state whether the authorization header was missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponseInJson'
+        404:
+          description: Not Found. No record with the supplied id was found
           content:
             application/json:
               schema:
