@@ -10,7 +10,7 @@ info:
 servers:
   - url: https://climate.spac.dk/api
     description: production server for the students to use
-  - url: http://localhost:8080/api/
+  - url: http://localhost:8080/api
     description: local server for development
 
 security:
@@ -20,11 +20,34 @@ components:
   securitySchemes:
     defaultApiKey:
       type: apiKey
-      name: Authorization
+      name: access_key
       in: header
   schemas:
-    record:
-      summery: a measurement with a timestamp and a unique id
+    RecordResponse:
+      title: Record response
+      summary: Response containing a single record
+      type: object
+      additionalProperties: false
+      properties:
+        record:
+          $ref: '#/components/schemas/Record'
+      required: [record]
+      example: {"record":{"id":"7e9b1a33-05fb-48e3-86b6-21ddc873c06f","timestamp":"2026-02-27T09:32:45Z","reading":{"DS18B20":{"device_name":"0000003e33d5","raw_reading":22123}}}}
+    RecordsResponse:
+      title: Records response
+      summary: Response containing a list of records
+      type: object
+      additionalProperties: false
+      properties:
+        records:
+          type: array
+          items:
+            $ref: '#/components/schemas/Record'
+      required: [records]
+      example: {"records":[{"id":"7e9b1a33-05fb-48e3-86b6-21ddc873c06f","timestamp":"2026-02-27T09:32:45Z","reading":{"BME280":{"temperature":21.5,"pressure":100000.0,"humidity":45.0}}},{"id":"3f6c6e2b-6d85-4d6e-9d33-8bf0b8d5c1a0","timestamp":"2026-02-27T09:35:12Z","reading":{"DS18B20":{"device_name":"0000003e33d5","raw_reading":22375}}}]}
+    Record:
+      title: Record
+      summary: a measurement with a timestamp and a unique id
       description:
         In our terminology a record is a measurement with a timestamp and a unique id.
         A measurement is a reading from a sensing instrument. The type of a records reading
@@ -32,24 +55,58 @@ components:
       type: object
       properties:
         id:
+          title: Record ID
           description: a unique identifier for the record
           type: string
           format: uuid
         timestamp:
+          title: Measurement capture timestamp
           description: the timestamp of the record
           type: string
           format: date-time
         reading:
+          title: Sensor output
           description: the actual reading data from the sensing instrument
-          type: enum
-          enum: [$ref: '#/components/schemas/BME280', $ref: '#/components/schemas/DS18B20']
+          $ref: '#/components/schemas/Reading'
+      required: [id, timestamp, reading]
+    Reading:
+      title: Reading (externally tagged union)
+      summary: a reading from a sensing instrument
+      description: |
+        Data read from a sensing instrument.
+
+        Wire format is an externally tagged union (exactly one of):
+          - { "BME280": { ... } }
+          - { "DS18B20": { ... } }
+      examples:
+        - BME280:
+            temperature: 21.5
+            pressure: 100000.0
+            humidity: 45.0
+        - DS18B20:
+            device_name: '0000003e33d5'
+            raw_reading: 22123
+      oneOf:
+        - $ref: '#/components/schemas/BME280Wrapper'
+        - $ref: '#/components/schemas/DS18B20Wrapper'
+    BME280Wrapper:
+      title: BME280 wrapper (externally tagged variant)
+      summary: Wrapper around a BME280 sensor reading
+      type: object
+      additionalProperties: false
+      properties:
+        BME280:
+          $ref: '#/components/schemas/BME280'
+      required: [BME280]
     BME280:
-      summery: a BME280 sensor reading
+      title: BME280 sensor reading
+      summary: a BME280 sensor reading
       description:
         a reading from a Bosch BME280 environment sensor.
         If reads temperature, humidity and pressure sensor.
         For a datasheet see [BME280](https://www.bosch-sensortec.com/products/environmental-sensors/humidity-sensors-bme280/).
       type: object
+      additionalProperties: false
       properties:
         temperature:
           summary: the temperature reading from the sensor.
@@ -74,26 +131,40 @@ components:
           format: float
           minimum: 0
           maximum: 100
+      required: [temperature, pressure, humidity]
+    DS18B20Wrapper:
+      title: DS18B20 wrapper (externally tagged variant)
+      summary: Wrapper around a DS18B20 sensor reading
+      type: object
+      additionalProperties: false
+      properties:
+        DS18B20:
+          $ref: '#/components/schemas/DS18B20'
+      required: [DS18B20]
     DS18B20:
-      summery: a DS18B20 sensor reading
+      title: DS18B20 sensor reading
+      summary: a DS18B20 sensor reading
       description:
         a reading from a DS18B20 temperature sensor;
         for a datasheet see [DS18B20](https://www.analog.com/en/products/ds18b20.html)
       type: object
+      additionalProperties: false
       properties:
         device_name:
           summary: the name of the device
           description:
             the unique name of the device.
             The device name is included, as it is reported by the instrument, and it is unique for each individual DS18B20.
-            The device name is always 15 characters long.
+            The device name is always 12 characters long.
           type: string
-          minLength: 15
-          maxLength: 15
+          minLength: 12
+          maxLength: 12
         raw_reading:
           summary: the actual reading from the sensor
           description: the actual reading form the sensor as degrees millicelcius; the value is an integer of type i32, i.e. a 32-bits signed number
           type: integer
+          format: int32
+      required: [device_name, raw_reading]
     GenericErrorResponseInJson:
       summary: a generic error response in JSON
       description:
@@ -125,9 +196,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/record'
+                $ref: '#/components/schemas/RecordsResponse'
     put:
       summary: Add a record
       description: Add a record to the database
@@ -135,7 +204,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/record'
+              $ref: '#/components/schemas/Record'
       responses:
         '201':
           description: The record was added
@@ -151,6 +220,7 @@ paths:
                     description: the unique id of the added record
                     type: string
                     format: uuid
+                required: [message, record_id]
         '400':
           description:
             Bad Request.
@@ -213,14 +283,15 @@ paths:
                 $ref: '#/components/schemas/GenericErrorResponseInJson'
   /records/{record_id}:
     get:
-      description: Success. Get a record by its identifier
+      summary: Get a record by id
+      description: Get a record by its identifier
       responses:
         200:
           description: The record was found and returned.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/record'
+                $ref: '#/components/schemas/RecordResponse'
         401:
           description:
             Unauthorized.
