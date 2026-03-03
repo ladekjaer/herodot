@@ -1,4 +1,4 @@
-### GET root
+###
 GET {{origin}}/
 
 > {%
@@ -15,7 +15,7 @@ GET {{origin}}/
     });
 %}
 
-### GET server status
+###
 GET {{origin}}/status
 
 > {%
@@ -40,7 +40,7 @@ GET {{origin}}/status
     });
 %}
 
-### PUT BME280 record
+### /api/records - BME280
 < {%
     request.variables.set("record_id", $uuid);
     request.variables.set("timestamp", $isoTimestamp)
@@ -48,7 +48,7 @@ GET {{origin}}/status
 
 PUT {{origin}}/api/records
 Content-Type: application/json
-access_key: 99ea32d6-e0dc-4b2c-9802-6eaeaf55bbac
+access_key: {{access_key}}
 
 {
     "id": "{{record_id}}",
@@ -82,7 +82,7 @@ access_key: 99ea32d6-e0dc-4b2c-9802-6eaeaf55bbac
     });
 %}
 
-### PUT DS18B20 record
+### /api/records - DS18B20
 < {%
     request.variables.set("record_id", $uuid);
     request.variables.set("timestamp", $isoTimestamp)
@@ -90,7 +90,7 @@ access_key: 99ea32d6-e0dc-4b2c-9802-6eaeaf55bbac
 
 PUT {{origin}}/api/records
 Content-Type: application/json
-access_key: 99ea32d6-e0dc-4b2c-9802-6eaeaf55bbac
+access_key: {{access_key}}
 
 {
     "id": "{{record_id}}",
@@ -123,9 +123,85 @@ access_key: 99ea32d6-e0dc-4b2c-9802-6eaeaf55bbac
     });
 %}
 
-### GET records
+###
+# Get a specific record by id depends on the record_id existence in the test data
+< {%
+    request.variables.set("record_id", "7e9b1a33-05fb-48e3-86b6-21ddc873c06f");
+%}
+
+GET {{origin}}/api/records/{{record_id}}
+Content-Type: application/json
+access_key: {{access_key}}
+
+> {%
+    client.test("Response status", function () {
+        let expected = 200;
+        let actual = response.status;
+        client.assert(expected === actual, `Expected status '${expected}', actual '${actual}'`);
+    });
+
+    client.test("Response Content-Type", function () {
+        let expected = "application/json";
+        let actual = response.contentType.mimeType;
+        client.assert(expected === actual, `Expected content type '${expected}', actual '${actual}'`);
+    });
+
+    client.test("Response body", function () {
+        let expected = {
+            "record": {
+                "id": "7e9b1a33-05fb-48e3-86b6-21ddc873c06f",
+                "reading": {
+                    "DS18B20": {
+                        "device_name": "0000003e33d5",
+                        "raw_reading": 22123
+                    }
+                },
+                "timestamp": "2026-02-27T09:32:45Z"
+            }
+        };
+        let actual = response.body;
+        client.assert(expected.record.id === actual.record.id, `id: expected '${expected.record.id}', actual '${actual.record.id}'`)
+        client.assert(expected.record.timestamp === actual.record.timestamp, `timestamp: expected '${expected.record.timestamp}', actual '${actual.record.timestamp}'`)
+        client.assert(expected.record.reading.DS18B20.device_name === actual.record.reading.DS18B20.device_name, `device_name: expected '${expected.record.reading.DS18B20.device_name}', actual '${actual.record.reading.DS18B20.device_name}'`)
+        client.assert(expected.record.reading.DS18B20.raw_reading === actual.record.reading.DS18B20.raw_reading, `raw_reading: expected '${expected.record.reading.DS18B20.raw_reading}', actual '${actual.record.reading.DS18B20.raw_reading}'`)
+    });
+%}
+
+###
+# GET /api/records/{record_id} with a random id should fail (almost) always
+< {%
+    request.variables.set("record_id", $uuid);
+%}
+
+GET {{origin}}/api/records/{{record_id}}
+Content-Type: application/json
+access_key: {{access_key}}
+
+> {%
+    client.test("Response status", function () {
+        let expected = 404;
+        let actual = response.status;
+        client.assert(expected === actual, `Expected status '${expected}', actual '${actual}'`);
+    });
+
+    client.test("Response Content-Type", function () {
+        let expected = "application/json";
+        let actual = response.contentType.mimeType;
+        client.assert(expected === actual, `Expected content type '${expected}', actual '${actual}'`);
+    });
+
+    client.test("Response body", function () {
+        let expected = {"error": "record not found", "message": "No record with the supplied id was found"};
+        let actual = response.body;
+        client.assert(expected.error === actual.error, `Expected error '${expected.error}', actual error '${actual.error}'`)
+        client.assert(expected.message === actual.message, `Expected body '${expected.message}', actual '${actual.message}'`);
+    });
+%}
+
+###
 
 GET {{origin}}/api/records
+access_key: {{access_key}}
 
 > {%
     client.test("Response status", function () {
@@ -135,7 +211,21 @@ GET {{origin}}/api/records
     });
 %}
 
-### POST records
+###
+# GET /api/records without authorization must fail
+
+GET {{origin}}/api/records
+
+> {%
+    client.test("Response status", function () {
+        let expected = 401;
+        let actual = response.status;
+        client.assert(expected === actual, `Expected status '${expected}', actual '${actual}'`);
+    });
+%}
+
+###
+# As the client sets the `id`, records are added with method PUT, not POST
 
 POST {{origin}}/api/records
 
@@ -147,7 +237,8 @@ POST {{origin}}/api/records
     });
 %}
 
-### GET record (singular!)
+###
+# The path /api/record (singular!) is invalid
 
 GET {{origin}}/api/record
 
@@ -159,7 +250,8 @@ GET {{origin}}/api/record
     });
 %}
 
-### POST record (singular!)
+###
+# The path /api/record (singular!) is invalid
 
 POST {{origin}}/api/record
 
@@ -171,7 +263,8 @@ POST {{origin}}/api/record
     });
 %}
 
-### PUT record (singular!)
+###
+# The path /api/record (singular!) is invalid
 
 PUT {{origin}}/api/record
 
