@@ -184,12 +184,89 @@ components:
         It is often used with responses with non-2xx status codes.
         It includes a descriptive message.
       type: string
+  parameters:
+    From:
+      name: from
+      description: Inclusive lower bound timestamp (ISO-8601).
+      in: query
+      required: false
+      schema:
+        type: string
+        format: date-time
+    To:
+      name: to
+      description: Exclusive upper bound timestamp (ISO-8601).
+      in: query
+      required: false
+      schema:
+        type: string
+        format: date-time
+    Before:
+      name: before
+      description: |
+        Cursor: return records strictly before this timestamp.
+        Used for backward pagination.
+      in: query
+      required: false
+      schema:
+        type: string
+        format: date-time
+    After:
+      name: after
+      description: |
+        Cursor: return records strictly after this timestamp.
+        Used for forward pagination.
+      in: query
+      required: false
+      schema:
+        type: string
+        format: date-time
+    Range:
+      name: range
+      summary: Temporal range of the returned records
+      description:
+        Temporal range of the returned records.
+        Convenience time range relative to current time.
+        Cannot be combined with `from`.
+      in: query
+      required: false
+      schema:
+        type: string
+        enum: [hour, day, week, month, year]
+    Limit:
+      name: limit
+      description: Maximum number of records to return.
+      in: query
+      required: false
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+        maximum: 5000
+        default: 100
+    Order:
+      name: order
+      description: Sort order of the returned records.
+      in: query
+      required: false
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: desc
 
 paths:
   /records:
     get:
       summary: Get records
       description: Get records from the database
+      parameters:
+        - $ref: '#/components/parameters/From'
+        - $ref: '#/components/parameters/To'
+        - $ref: '#/components/parameters/Before'
+        - $ref: '#/components/parameters/After'
+        - $ref: '#/components/parameters/Range'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Order'
       responses:
         '200':
           description: A list of records
