@@ -94,6 +94,26 @@ components:
           summary: the actual reading from the sensor
           description: the actual reading form the sensor as degrees millicelcius; the value is an integer of type i32, i.e. a 32-bits signed number
           type: integer
+    GenericErrorResponseInJson:
+      summary: a generic error response in JSON
+      description:
+        a generic error response in JSON.
+        It is often used with responses with non-2xx status codes.
+        It includes a descriptive message.
+      type: object
+      properties:
+        message:
+          description:
+            a descriptive message indicating the failure of the operation
+          type: string
+    GenericErrorResponseInPlainText:
+      summary: a generic error response in plain text
+      description:
+        a generic error response in plain text.
+        It is often used with responses with non-2xx status codes.
+        It includes a descriptive message.
+      type: string
+
 
 paths:
   /records:
@@ -128,7 +148,67 @@ paths:
                   message:
                     description: A message indicating the success of the operation
                     type: string
-                  id:
+                  record_id:
                     description: the unique id of the added record
                     type: string
                     format: uuid
+        '400':
+          description:
+            Bad Request.
+            The request body did not contain a valid record.
+            See the requestBody field on this path/method combination for specification.
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponseInPlainText'
+        '401':
+          description:
+            Unauthorized.
+            The request did not contain a authorization header.
+            The response will state whether the authorization header was missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponseInJson'
+        '409':
+          description:
+            Conflict.
+            The request body contained a record with an id of a record that already exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponseInJson'
+        '415':
+          description:
+            Unsupported Media Type.
+            The 'Content-Type' header of the was not set to a supported MIME type.
+            Currently only 'application/json' is supported.
+            See the requestBody field on this path/method combination for specification.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponseInJson'
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponseInPlainText'
+        '422':
+          description:
+            Unprocessable Entity.
+            The request body did not contain a valid record.
+            See the requestBody field on this path/method combination for specification.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponseInJson'
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponseInPlainText'
+        '500':
+          description:
+            Internal Server Error.
+            A generic response indicating, that an unexpected error occurred.
+            This may be due to a bug in the server or a temporary issue.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponseInJson'
