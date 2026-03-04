@@ -15,14 +15,14 @@ use uuid::Uuid;
 
 pub(crate) fn api() -> Router<AppState> {
     Router::new()
-        .route("/records", get(get_records))
+        .route("/records", get(get_records_by_filter))
         .route("/records", put(put_record))
         .route("/records/bme280", get(get_bme280))
         .route("/records/ds18b20", get(get_ds18b20))
-        .route("/records/{record_id}", get(get_record))
+        .route("/records/{record_id}", get(get_record_by_id))
 }
 
-async fn get_record(auth_token: AuthTokenValue, State(state): State<AppState>, Path(record_id): Path<Uuid>) -> impl IntoResponse {
+async fn get_record_by_id(auth_token: AuthTokenValue, State(state): State<AppState>, Path(record_id): Path<Uuid>) -> impl IntoResponse {
     if let Err(error) = auth_token.validate(&state).await {
         return error;
     }
@@ -42,12 +42,12 @@ async fn get_record(auth_token: AuthTokenValue, State(state): State<AppState>, P
     }
 }
 
-async fn get_records(auth_token: AuthTokenValue, State(state): State<AppState>) -> impl IntoResponse {
+async fn get_records_by_filter(auth_token: AuthTokenValue, Query(filter): Query<RecordFilter>, State(state): State<AppState>) -> impl IntoResponse {
     if let Err(error) = auth_token.validate(&state).await {
         return error;
     }
 
-    match state.repository.get_records().await {
+    match state.repository.get_record_by_filter(filter).await {
         Ok(records) => {
             let response_message = json!({"records": records});
             (StatusCode::OK, Json(response_message))
