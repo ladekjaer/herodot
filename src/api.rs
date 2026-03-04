@@ -22,7 +22,11 @@ pub(crate) fn api() -> Router<AppState> {
         .route("/records/{record_id}", get(get_record_by_id))
 }
 
-async fn get_record_by_id(auth_token: AuthTokenValue, State(state): State<AppState>, Path(record_id): Path<Uuid>) -> impl IntoResponse {
+async fn get_record_by_id(
+    auth_token: AuthTokenValue,
+    State(state): State<AppState>,
+    Path(record_id): Path<Uuid>
+) -> impl IntoResponse {
     if let Err(error) = auth_token.validate(&state).await {
         return error;
     }
@@ -42,7 +46,11 @@ async fn get_record_by_id(auth_token: AuthTokenValue, State(state): State<AppSta
     }
 }
 
-async fn get_records_by_filter(auth_token: AuthTokenValue, Query(filter): Query<RecordFilter>, State(state): State<AppState>) -> impl IntoResponse {
+async fn get_records_by_filter(
+    auth_token: AuthTokenValue,
+    Query(filter): Query<RecordFilter>,
+    State(state): State<AppState>
+) -> impl IntoResponse {
     if let Err(error) = auth_token.validate(&state).await {
         return error;
     }
@@ -60,7 +68,11 @@ async fn get_records_by_filter(auth_token: AuthTokenValue, Query(filter): Query<
     }
 }
 
-async fn get_bme280(auth_token: AuthTokenValue, Query(filter): Query<RecordFilter>, State(state): State<AppState>) -> impl IntoResponse {
+async fn get_bme280(
+    auth_token: AuthTokenValue,
+    Query(filter): Query<RecordFilter>,
+    State(state): State<AppState>
+) -> impl IntoResponse {
     if let Err(error) = auth_token.validate(&state).await {
         return error;
     }
@@ -78,7 +90,11 @@ async fn get_bme280(auth_token: AuthTokenValue, Query(filter): Query<RecordFilte
     }
 }
 
-async fn get_ds18b20(auth_token: AuthTokenValue, Query(filter): Query<RecordFilter>, State(state): State<AppState>) -> impl IntoResponse {
+async fn get_ds18b20(
+    auth_token: AuthTokenValue,
+    Query(filter): Query<RecordFilter>,
+    State(state): State<AppState>
+) -> impl IntoResponse {
     if let Err(error) = auth_token.validate(&state).await {
         return error;
     }
@@ -100,7 +116,7 @@ async fn put_record(
     auth_token: AuthTokenValue,
     State(state): State<AppState>,
     Json(record): Json<Record>,
-) -> (StatusCode, Json<Value>) {
+) -> impl IntoResponse {
     if let Err(error) = auth_token.validate(&state).await {
         return error;
     }
