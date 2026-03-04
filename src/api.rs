@@ -50,67 +50,58 @@ async fn get_record_by_id(
 async fn get_records_by_filter(
     auth_token: AuthTokenValue,
     Query(filter): Query<RecordFilter>,
-    State(state): State<AppState>
-) -> impl IntoResponse {
-    if let Err(error) = auth_token.validate(&state).await {
-        return error.into_response();
-    }
+    State(state): State<AppState>,
+) -> Result<impl IntoResponse, AppError> {
+    auth_token.validate(&state).await?;
 
-    match state.repository.get_record_by_filter(filter).await {
-        Ok(records) => {
-            let response_message = json!({"records": records});
-            (StatusCode::OK, Json(response_message)).into_response()
-        }
-        Err(error) => {
+    let records = state
+        .repository
+        .get_record_by_filter(filter)
+        .await
+        .map_err(|error| {
             eprintln!("Error getting records: {}", error);
-            let response_message = json!({"error": "database error", "message": "retrieval failed"});
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(response_message)).into_response()
-        }
-    }
+            AppError::InternalServerError("retrieval from database failed")
+        })?;
+
+    Ok((StatusCode::OK, Json(json!({"records": records}))))
 }
 
 async fn get_bme280(
     auth_token: AuthTokenValue,
     Query(filter): Query<RecordFilter>,
-    State(state): State<AppState>
-) -> impl IntoResponse {
-    if let Err(error) = auth_token.validate(&state).await {
-        return error.into_response();
-    }
+    State(state): State<AppState>,
+) -> Result<impl IntoResponse, AppError> {
+    auth_token.validate(&state).await?;
 
-    match state.repository.get_bme280_by_filter(filter).await {
-        Ok(records) => {
-            let response_message = json!({"records": records});
-            (StatusCode::OK, Json(response_message)).into_response()
-        }
-        Err(error) => {
+    let records = state
+        .repository
+        .get_bme280_by_filter(filter)
+        .await
+        .map_err(|error| {
             eprintln!("Error getting records: {}", error);
-            let response_message = json!({"error": "database error", "message": "retrieval failed"});
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(response_message)).into_response()
-        }
-    }
+            AppError::InternalServerError("retrieval from database failed")
+        })?;
+
+    Ok((StatusCode::OK, Json(json!({"records": records}))))
 }
 
 async fn get_ds18b20(
     auth_token: AuthTokenValue,
     Query(filter): Query<RecordFilter>,
     State(state): State<AppState>
-) -> impl IntoResponse {
-    if let Err(error) = auth_token.validate(&state).await {
-        return error.into_response();
-    }
+) -> Result<impl IntoResponse, AppError> {
+    auth_token.validate(&state).await?;
 
-    match state.repository.get_ds18b20_by_filter(filter).await {
-        Ok(records) => {
-            let response_message = json!({"records": records});
-            (StatusCode::OK, Json(response_message)).into_response()
-        }
-        Err(error) => {
+    let records = state
+        .repository
+        .get_ds18b20_by_filter(filter)
+        .await
+        .map_err(|error| {
             eprintln!("Error getting records: {}", error);
-            let response_message = json!({"error": "database error", "message": "retrieval failed"});
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(response_message)).into_response()
-        }
-    }
+            AppError::InternalServerError("retrieval from database failed")
+        })?;
+
+    Ok((StatusCode::OK, Json(json!({"records": records}))))
 }
 
 async fn put_record(
