@@ -8,6 +8,9 @@ use sqlx::PgPool;
 use uuid::Uuid;
 use crate::authentication::api_key::ApiKey;
 
+const DEFAULT_LIMIT: usize = 100;
+const HARD_LIMIT: usize = 5000;
+
 #[derive(Clone)]
 pub(crate) struct Repository {
     db_pool: PgPool,
@@ -213,5 +216,12 @@ FROM
             "#)
             .fetch_all(&self.db_pool).await?;
         Ok(records)
+    }
+
+    fn limit(max_length: Option<usize>) -> usize {
+        match max_length {
+            None => {DEFAULT_LIMIT}
+            Some(max_length) => {std::cmp::min(max_length, HARD_LIMIT)}
+        }
     }
 }
