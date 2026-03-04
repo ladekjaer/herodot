@@ -215,46 +215,6 @@ components:
       schema:
         type: string
         format: date-time
-    To:
-      name: to
-      description: Exclusive upper bound timestamp (ISO-8601).
-      in: query
-      required: false
-      schema:
-        type: string
-        format: date-time
-    Before:
-      name: before
-      description: |
-        Cursor: return records strictly before this timestamp.
-        Used for backward pagination.
-      in: query
-      required: false
-      schema:
-        type: string
-        format: date-time
-    After:
-      name: after
-      description: |
-        Cursor: return records strictly after this timestamp.
-        Used for forward pagination.
-      in: query
-      required: false
-      schema:
-        type: string
-        format: date-time
-    Range:
-      name: range
-      summary: Temporal range of the returned records
-      description:
-        Temporal range of the returned records.
-        Convenience time range relative to current time.
-        Cannot be combined with `from`.
-      in: query
-      required: false
-      schema:
-        type: string
-        enum: [hour, day, week, month, year]
     Limit:
       name: limit
       description: Maximum number of records to return.
@@ -266,15 +226,6 @@ components:
         minimum: 1
         maximum: 5000
         default: 100
-    Order:
-      name: order
-      description: Sort order of the returned records.
-      in: query
-      required: false
-      schema:
-        type: string
-        enum: [asc, desc]
-        default: desc
   responses:
     BadRequest:
       title: Bad Request
@@ -375,12 +326,7 @@ paths:
       tags: [Records]
       parameters:
         - $ref: '#/components/parameters/From'
-        - $ref: '#/components/parameters/To'
-        - $ref: '#/components/parameters/Before'
-        - $ref: '#/components/parameters/After'
-        - $ref: '#/components/parameters/Range'
         - $ref: '#/components/parameters/Limit'
-        - $ref: '#/components/parameters/Order'
       responses:
         '200':
           description: A list of records
