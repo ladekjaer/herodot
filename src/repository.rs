@@ -18,11 +18,11 @@ pub(crate) struct Repository {
 }
 
 #[derive(sqlx::FromRow, serde::Serialize)]
-pub(crate) struct Ds18b20Record {
-    pub id: Uuid,
-    pub device_name: String,
-    pub raw_reading: i32,
-    pub timestamp: chrono::DateTime<chrono::Utc>,
+struct Ds18b20Record {
+    id: Uuid,
+    device_name: String,
+    raw_reading: i32,
+    timestamp: chrono::DateTime<chrono::Utc>,
 }
 
 impl From<Ds18b20Record> for Record {
@@ -30,18 +30,24 @@ impl From<Ds18b20Record> for Record {
         Record::new(
             value.id,
             value.timestamp,
-            Reading::DS18B20(DS18B20::new(value.device_name, value.raw_reading)),
+            Reading::from(value),
         )
     }
 }
 
+impl From<Ds18b20Record> for Reading {
+    fn from(value: Ds18b20Record) -> Self {
+        Reading::DS18B20(DS18B20::new(value.device_name, value.raw_reading))
+    }
+}
+
 #[derive(sqlx::FromRow, serde::Serialize)]
-pub(crate) struct Bme280Record {
-    pub id: Uuid,
-    pub temperature: f32,
-    pub pressure: f32,
-    pub humidity: f32,
-    pub timestamp: chrono::DateTime<chrono::Utc>,
+struct Bme280Record {
+    id: Uuid,
+    temperature: f32,
+    pressure: f32,
+    humidity: f32,
+    timestamp: chrono::DateTime<chrono::Utc>,
 }
 
 impl From<Bme280Record> for Record {
@@ -49,12 +55,18 @@ impl From<Bme280Record> for Record {
         Record::new(
             value.id,
             value.timestamp,
-            Reading::BME280(BME280::new(
-                value.temperature,
-                value.pressure,
-                value.humidity,
-            )),
+            Reading::from(value),
         )
+    }
+}
+
+impl From<Bme280Record> for Reading {
+    fn from(value: Bme280Record) -> Self {
+        Reading::BME280(BME280::new(
+            value.temperature,
+            value.pressure,
+            value.humidity,
+        ))
     }
 }
 
@@ -108,12 +120,12 @@ impl Repository {
     ) -> Result<Option<Record>, sqlx::Error> {
         let bme280 = self.get_bme280_record_by_id(record_id).await?;
         if let Some(bme280) = bme280 {
-            return Ok(Some(Record::from(bme280)));
+            return Ok(Some(bme280));
         }
 
         let ds18b20 = self.get_ds18b20_record_by_id(record_id).await?;
         if let Some(ds18b20) = ds18b20 {
-            return Ok(Some(Record::from(ds18b20)));
+            return Ok(Some(ds18b20));
         }
 
         Ok(None)
@@ -124,17 +136,8 @@ impl Repository {
         let bme280_records = self.get_all_bme280_records().await?;
         let ds18b20_records = self.get_all_ds18b20_records().await?;
 
-        records.extend(bme280_records.into_iter().map(|r| {
-            let bme280_reading = BME280::new(r.temperature, r.pressure, r.humidity);
-            let reading = Reading::BME280(bme280_reading);
-            Record::new(r.id, r.timestamp, reading)
-        }));
-
-        records.extend(ds18b20_records.into_iter().map(|r| {
-            let ds18b20_reading = DS18B20::new(r.device_name, r.raw_reading);
-            let reading = Reading::DS18B20(ds18b20_reading);
-            Record::new(r.id, r.timestamp, reading)
-        }));
+        records.extend(bme280_records.into_iter());
+        records.extend(ds18b20_records.into_iter());
 
         Ok(records)
     }
@@ -142,21 +145,30 @@ impl Repository {
     pub(crate) async fn get_bme280_record_by_id(
         &self,
         record_id: Uuid,
-    ) -> Result<Option<Bme280Record>, sqlx::Error> {
+    ) -> Result<Option<Record>, sqlx::Error> {
         let record = sqlx::query_as::<_, Bme280Record>(r#"SELECT id, temperature, pressure, humidity, timestamp FROM records.bme280 WHERE id = $1"#)
             .bind(record_id)
             .fetch_optional(&self.db_pool)
             .await?;
 
-        Ok(record)
+        match record {
+            None => {Ok(None)}
+            Some(record) => {
+                let record: Record = Record::from(record);
+                Ok(Some(record))
+            }
+        }
     }
 
-    pub(crate) async fn get_all_bme280_records(&self) -> Result<Vec<Bme280Record>, sqlx::Error> {
+    pub(crate) async fn get_all_bme280_records(&self) -> Result<Vec<Record>, sqlx::Error> {
         let records = sqlx::query_as::<_, Bme280Record>(
             r#"SELECT id, temperature, pressure, humidity, timestamp FROM records.bme280"#,
         )
         .fetch_all(&self.db_pool)
         .await?;
+
+        let records: Vec<Record> = records.into_iter().map(|r| Record::from(r)).collect();
+
         Ok(records)
     }
 
@@ -169,17 +181,8 @@ impl Repository {
         let bme280_records = self.get_bme280_by_filter(filter.clone()).await?;
         let ds18b20_records = self.get_ds18b20_by_filter(filter.clone()).await?;
 
-        records.extend(bme280_records.into_iter().map(|r| {
-            let bme280_reading = BME280::new(r.temperature, r.pressure, r.humidity);
-            let reading = Reading::BME280(bme280_reading);
-            Record::new(r.id, r.timestamp, reading)
-        }));
-
-        records.extend(ds18b20_records.into_iter().map(|r| {
-            let ds18b20_reading = DS18B20::new(r.device_name, r.raw_reading);
-            let reading = Reading::DS18B20(ds18b20_reading);
-            Record::new(r.id, r.timestamp, reading)
-        }));
+        records.extend(bme280_records.into_iter());
+        records.extend(ds18b20_records.into_iter());
 
         Ok(records)
 
@@ -188,7 +191,7 @@ impl Repository {
     pub(crate) async fn get_bme280_by_filter(
         &self,
         filter: RecordFilter,
-    ) -> Result<Vec<Bme280Record>, sqlx::Error> {
+    ) -> Result<Vec<Record>, sqlx::Error> {
         let limit = limit(filter.limit);
         let mut query_builder = QueryBuilder::new(r#"SELECT id, temperature, pressure, humidity, timestamp FROM records.bme280"#);
         query_builder.push(" WHERE TRUE ");
@@ -204,13 +207,15 @@ impl Repository {
             .fetch_all(&self.db_pool)
             .await?;
 
+        let records: Vec<Record> = records.into_iter().map(|r| Record::from(r)).collect();
+
         Ok(records)
     }
 
     pub(crate) async fn get_ds18b20_by_filter(
         &self,
         filter: RecordFilter
-    ) -> Result<Vec<Ds18b20Record>, sqlx::Error> {
+    ) -> Result<Vec<Record>, sqlx::Error> {
         let limit = limit(filter.limit);
         let mut query_builder = QueryBuilder::new(r#"SELECT id, device_name, raw_reading, timestamp FROM records.ds18b20"#);
         query_builder.push(" WHERE TRUE ");
@@ -226,13 +231,15 @@ impl Repository {
             .fetch_all(&self.db_pool)
             .await?;
 
+        let records: Vec<Record> = records.into_iter().map(|r| Record::from(r)).collect();
+
         Ok(records)
     }
 
     pub(crate) async fn get_ds18b20_record_by_id(
         &self,
         record_id: Uuid,
-    ) -> Result<Option<Ds18b20Record>, sqlx::Error> {
+    ) -> Result<Option<Record>, sqlx::Error> {
         let record = sqlx::query_as::<_, Ds18b20Record>(
             r#"SELECT id, device_name, raw_reading, timestamp FROM records.ds18b20 WHERE id = $1"#,
         )
@@ -240,15 +247,22 @@ impl Repository {
         .fetch_optional(&self.db_pool)
         .await?;
 
-        Ok(record)
+        match record {
+            None => {Ok(None)}
+            Some(record) => {
+                let record = Record::from(record);
+                Ok(Some(record))
+            }
+        }
     }
 
-    pub(crate) async fn get_all_ds18b20_records(&self) -> Result<Vec<Ds18b20Record>, sqlx::Error> {
+    pub(crate) async fn get_all_ds18b20_records(&self) -> Result<Vec<Record>, sqlx::Error> {
         let records = sqlx::query_as::<_, Ds18b20Record>(
             r#"SELECT id, device_name, raw_reading, timestamp FROM records.ds18b20"#,
         )
         .fetch_all(&self.db_pool)
         .await?;
+        let records: Vec<Record> = records.into_iter().map(|r| Record::from(r)).collect();
         Ok(records)
     }
 
