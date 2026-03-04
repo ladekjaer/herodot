@@ -1,10 +1,10 @@
 use uuid::Uuid;
 use axum::extract::FromRequestParts;
-use axum::http::StatusCode;
 use axum::http::request::Parts;
 use axum::{Extension, RequestPartsExt};
 use tower_sessions::Session;
 use crate::authentication::user::User;
+use crate::error::AppError;
 
 pub(crate) struct AuthUser {
     id: Uuid,
@@ -29,25 +29,17 @@ impl AuthUser {
 }
 
 impl<S: Send + Sync> FromRequestParts<S> for AuthUser {
-    type Rejection = (StatusCode, &'static str);
+    type Rejection = AppError;
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        let Extension(session) = parts.extract::<Extension<Session>>()
+        let Extension(session) = parts
+            .extract::<Extension<Session>>()
             .await
-            .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Session not found"))?;
+            .map_err(|_| AppError::InternalServerError("Session not found"))?;
 
-        match session.get::<User>("user").await {
-            Ok(user) => {
-                if let Some(user) = user {
-                    Ok(AuthUser::new(user))
-                } else {
-                    Err((StatusCode::UNAUTHORIZED, "Unauthorized"))
-                }
-            }
-            Err(error) => {
-                eprintln!("Error getting user from session: {}", error);
-                Err((StatusCode::INTERNAL_SERVER_ERROR, "Session error"))
-            }
+        match session.get::<User>("user").await? {
+            Some(user) => Ok(AuthUser::new(user)),
+            None => Err(AppError::Unauthorized("Unauthorized")),
         }
     }
 }

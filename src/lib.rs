@@ -4,6 +4,7 @@ use authentication::api_key;
 
 mod api;
 mod authentication;
+mod error;
 mod repository;
 mod state;
 mod status;
