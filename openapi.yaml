@@ -2,7 +2,7 @@ openapi: 3.1.1
 
 info:
   title: Specialisterne Environment API
-  description:
+  description: |
     API for Specialisterne Environment
     The Web API specified here is used for educational purposes.
   version: 1.0.0
@@ -45,6 +45,20 @@ components:
             $ref: '#/components/schemas/Record'
       required: [records]
       example: {"records":[{"id":"7e9b1a33-05fb-48e3-86b6-21ddc873c06f","timestamp":"2026-02-27T09:32:45Z","reading":{"BME280":{"temperature":21.5,"pressure":100000.0,"humidity":45.0}}},{"id":"3f6c6e2b-6d85-4d6e-9d33-8bf0b8d5c1a0","timestamp":"2026-02-27T09:35:12Z","reading":{"DS18B20":{"device_name":"0000003e33d5","raw_reading":22375}}}]}
+    AddRecordResponse:
+      title: Add record response
+      summary: Response returned when a record is successfully stored
+      type: object
+      properties:
+        message:
+          description: A message indicating the success of the operation
+          type: string
+        record_id:
+          description: the unique id of the added record
+          type: string
+          format: uuid
+      required: [message, record_id]
+      additionalProperties: false
     Record:
       title: Record
       summary: a measurement with a timestamp and a unique id
@@ -69,6 +83,7 @@ components:
           description: the actual reading data from the sensing instrument
           $ref: '#/components/schemas/Reading'
       required: [id, timestamp, reading]
+      additionalProperties: false
     Reading:
       title: Reading (externally tagged union)
       summary: a reading from a sensing instrument
@@ -124,13 +139,18 @@ components:
           format: float
         humidity:
           summary: the humidity reading from the sensor
-          description:
-            the relative humidity reading from the sensor.
-            The humidity is reported as a percentage.
+          description: |
+            The relative humidity reading from the sensor.
+            
+            Relative humidity is represented in percent (%RH), expressed on a 0..100 scale.
+
+            Example: `45.0` means 45% relative humidity.
+            (Not a fraction: do not send `0.45` to mean 45%.)
           type: number
           format: float
           minimum: 0
           maximum: 100
+          example: 45.0
       required: [temperature, pressure, humidity]
     DS18B20Wrapper:
       title: DS18B20 wrapper (externally tagged variant)
@@ -172,11 +192,13 @@ components:
         It is often used with responses with non-2xx status codes.
         It includes a descriptive message.
       type: object
+      additionalProperties: false
       properties:
         message:
           description:
             a descriptive message indicating the failure of the operation
           type: string
+      required: [message]
     GenericErrorResponseInPlainText:
       summary: a generic error response in plain text
       description:
@@ -253,12 +275,104 @@ components:
         type: string
         enum: [asc, desc]
         default: desc
+  responses:
+    BadRequest:
+      title: Bad Request
+      summary: 400 Bad Request
+      description:
+        Bad Request.
+        The request body did not contain a valid record.
+        See the requestBody field on this path/method combination for specification.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericErrorResponseInJson'
+        text/plain:
+          schema:
+            $ref: '#/components/schemas/GenericErrorResponseInPlainText'
+    Unauthorized:
+      title: Unauthorized
+      summary: 401 Unauthorized request due to missing or invalid authorization header
+      description:
+        Unauthorized.
+        The request did not contain a authorization header.
+        The response will state whether the authorization header was missing or invalid.
+        HTTP Status Code 401
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericErrorResponseInJson'
+        text/plain:
+          schema:
+            $ref: '#/components/schemas/GenericErrorResponseInPlainText'
+    NotFound:
+      title: Not Found
+      summary: 404 Not Found
+      description: Not Found. No record with the supplied id was found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericErrorResponseInJson'
+    Conflict:
+      title: Conflict
+      summary: 409 Conflict
+      description:
+        Conflict.
+        The request could not be completed due to a conflict with the current state of the target resource.
+        The request body contained a record with an id of a record that already exists.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericErrorResponseInJson'
+    UnsupportedMediaType:
+      title: Unsupported Media Type
+      summary: 415 Unsupported Media Type. The request body format is not supported
+      description:
+        Unsupported Media Type.
+        The 'Content-Type' header of the was not set to a supported MIME type.
+        Currently only 'application/json' is supported.
+        See the requestBody field on this path/method combination for specification.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericErrorResponseInJson'
+        text/plain:
+          schema:
+            $ref: '#/components/schemas/GenericErrorResponseInPlainText'
+    UnprocessableEntity:
+      title: Unprocessable Entity
+      summary: 422 Unprocessable Entity
+      description:
+        Unprocessable Entity.
+        The request body did not contain a valid record.
+        See the requestBody field on this path/method combination for specification.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericErrorResponseInJson'
+        text/plain:
+          schema:
+            $ref: '#/components/schemas/GenericErrorResponseInPlainText'
+    InternalServerError:
+      title: Internal Server Error
+      summary: 500 Internal server error
+      description:
+        Internal Server Error.
+        A generic response indicating, that an unexpected error occurred.
+        This may be due to a bug in the server or a temporary issue.
+        HTTP Status Code 500
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericErrorResponseInJson'
 
 paths:
   /records:
     get:
       summary: Get records
+      operationId: getRecords
       description: Get records from the database
+      tags: [Records]
       parameters:
         - $ref: '#/components/parameters/From'
         - $ref: '#/components/parameters/To'
@@ -274,10 +388,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RecordsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
     put:
       summary: Add a record
+      operationId: addRecord
       description: Add a record to the database
+      tags: [Records]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -288,99 +409,47 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    description: A message indicating the success of the operation
-                    type: string
-                  record_id:
-                    description: the unique id of the added record
-                    type: string
-                    format: uuid
-                required: [message, record_id]
+                $ref: '#/components/schemas/AddRecordResponse'
         '400':
-          description:
-            Bad Request.
-            The request body did not contain a valid record.
-            See the requestBody field on this path/method combination for specification.
-          content:
-            text/plain:
-              schema:
-                $ref: '#/components/schemas/GenericErrorResponseInPlainText'
+          $ref: '#/components/responses/BadRequest'
         '401':
-          description:
-            Unauthorized.
-            The request did not contain a authorization header.
-            The response will state whether the authorization header was missing or invalid.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GenericErrorResponseInJson'
+          $ref: '#/components/responses/Unauthorized'
         '409':
-          description:
-            Conflict.
-            The request body contained a record with an id of a record that already exists.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GenericErrorResponseInJson'
+          $ref: '#/components/responses/Conflict'
         '415':
-          description:
-            Unsupported Media Type.
-            The 'Content-Type' header of the was not set to a supported MIME type.
-            Currently only 'application/json' is supported.
-            See the requestBody field on this path/method combination for specification.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GenericErrorResponseInJson'
-            text/plain:
-              schema:
-                $ref: '#/components/schemas/GenericErrorResponseInPlainText'
+          $ref: '#/components/responses/UnsupportedMediaType'
         '422':
-          description:
-            Unprocessable Entity.
-            The request body did not contain a valid record.
-            See the requestBody field on this path/method combination for specification.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GenericErrorResponseInJson'
-            text/plain:
-              schema:
-                $ref: '#/components/schemas/GenericErrorResponseInPlainText'
+          $ref: '#/components/responses/UnprocessableEntity'
         '500':
-          description:
-            Internal Server Error.
-            A generic response indicating, that an unexpected error occurred.
-            This may be due to a bug in the server or a temporary issue.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GenericErrorResponseInJson'
+          $ref: '#/components/responses/InternalServerError'
   /records/{record_id}:
+    parameters:
+      - name: record_id
+        in: path
+        description: Unique record identifier
+        required: true
+        schema:
+          type: string
+          format: uuid
     get:
       summary: Get a record by id
+      operationId: getRecordById
       description: Get a record by its identifier
+      tags: [Records]
       responses:
-        200:
+        '200':
           description: The record was found and returned.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RecordResponse'
-        401:
-          description:
-            Unauthorized.
-            The request did not contain a authorization header.
-            The response will state whether the authorization header was missing or invalid.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GenericErrorResponseInJson'
-        404:
-          description: Not Found. No record with the supplied id was found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GenericErrorResponseInJson'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+tags:
+  - name: Records
+    description: Sensor readings with timestamps and unique identifiers
