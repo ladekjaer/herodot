@@ -1,3 +1,4 @@
+use crate::error::AppError;
 use crate::state::AppState;
 use axum::extract::{FromRequestParts, Path, Query, State};
 use axum::http::request::Parts;
@@ -7,10 +8,10 @@ use axum::routing::{get, put};
 use axum::{Json, Router};
 use rerec::record::Record;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::json;
 use sqlx::error::ErrorKind;
-use sqlx::Error;
 use sqlx::types::chrono::{DateTime, Utc};
+use sqlx::Error;
 use uuid::Uuid;
 
 pub(crate) fn api() -> Router<AppState> {
@@ -28,20 +29,20 @@ async fn get_record_by_id(
     Path(record_id): Path<Uuid>
 ) -> impl IntoResponse {
     if let Err(error) = auth_token.validate(&state).await {
-        return error;
+        return error.into_response();
     }
 
     match state.repository.get_record_by_id(record_id).await {
         Ok(record) => {
             match record {
-                None => {(StatusCode::NOT_FOUND, Json(json!({"error": "record not found", "message": "No record with the supplied id was found"})))}
-                Some(record) => {(StatusCode::OK, Json(json!({"record": record})))}
+                None => (StatusCode::NOT_FOUND, Json(json!({"error": "record not found", "message": "No record with the supplied id was found"}))).into_response(),
+                Some(record) => (StatusCode::OK, Json(json!({"record": record}))).into_response()
             }
         }
         Err(error) => {
             eprintln!("Error getting record: {}", error);
             let response_message = json!({"error": "database error", "message": "retrieval failed"});
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(response_message))
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(response_message)).into_response()
         }
     }
 }
@@ -52,18 +53,18 @@ async fn get_records_by_filter(
     State(state): State<AppState>
 ) -> impl IntoResponse {
     if let Err(error) = auth_token.validate(&state).await {
-        return error;
+        return error.into_response();
     }
 
     match state.repository.get_record_by_filter(filter).await {
         Ok(records) => {
             let response_message = json!({"records": records});
-            (StatusCode::OK, Json(response_message))
+            (StatusCode::OK, Json(response_message)).into_response()
         }
         Err(error) => {
             eprintln!("Error getting records: {}", error);
             let response_message = json!({"error": "database error", "message": "retrieval failed"});
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(response_message))
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(response_message)).into_response()
         }
     }
 }
@@ -74,18 +75,18 @@ async fn get_bme280(
     State(state): State<AppState>
 ) -> impl IntoResponse {
     if let Err(error) = auth_token.validate(&state).await {
-        return error;
+        return error.into_response();
     }
 
     match state.repository.get_bme280_by_filter(filter).await {
         Ok(records) => {
             let response_message = json!({"records": records});
-            (StatusCode::OK, Json(response_message))
+            (StatusCode::OK, Json(response_message)).into_response()
         }
         Err(error) => {
             eprintln!("Error getting records: {}", error);
             let response_message = json!({"error": "database error", "message": "retrieval failed"});
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(response_message))
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(response_message)).into_response()
         }
     }
 }
@@ -96,18 +97,18 @@ async fn get_ds18b20(
     State(state): State<AppState>
 ) -> impl IntoResponse {
     if let Err(error) = auth_token.validate(&state).await {
-        return error;
+        return error.into_response();
     }
 
     match state.repository.get_ds18b20_by_filter(filter).await {
         Ok(records) => {
             let response_message = json!({"records": records});
-            (StatusCode::OK, Json(response_message))
+            (StatusCode::OK, Json(response_message)).into_response()
         }
         Err(error) => {
             eprintln!("Error getting records: {}", error);
             let response_message = json!({"error": "database error", "message": "retrieval failed"});
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(response_message))
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(response_message)).into_response()
         }
     }
 }
@@ -118,7 +119,7 @@ async fn put_record(
     Json(record): Json<Record>,
 ) -> impl IntoResponse {
     if let Err(error) = auth_token.validate(&state).await {
-        return error;
+        return error.into_response();
     }
 
     println!("RECORD PUT request: {:?}", record);
@@ -129,7 +130,7 @@ async fn put_record(
                 "message": "record saved successfully",
                 "record_id": record_id
             });
-            (StatusCode::CREATED, Json(reply))
+            (StatusCode::CREATED, Json(reply)).into_response()
         }
         Err(error) => {
             eprintln!("Error saving record: {:?}", error);
@@ -138,33 +139,33 @@ async fn put_record(
                     match error.kind() {
                         ErrorKind::UniqueViolation => {
                             let response_message = json!({"error": "duplicate record", "message": "a record with an id of a record that already exists"});
-                            (StatusCode::CONFLICT, Json(response_message))
+                            (StatusCode::CONFLICT, Json(response_message)).into_response()
                         }
                         ErrorKind::ForeignKeyViolation => {
                             let response_message = json!({"error": "invalid record", "message": "record references non-existing record"});
-                            (StatusCode::BAD_REQUEST, Json(response_message))
+                            (StatusCode::BAD_REQUEST, Json(response_message)).into_response()
                         }
                         ErrorKind::NotNullViolation => {
                             let response_message = json!({"error": "invalid record", "message": "record is missing required fields"});
-                            (StatusCode::BAD_REQUEST, Json(response_message))
+                            (StatusCode::BAD_REQUEST, Json(response_message)).into_response()
                         }
                         ErrorKind::CheckViolation => {
                             let response_message = json!({"error": "invalid record", "message": "record is invalid"});
-                            (StatusCode::BAD_REQUEST, Json(response_message))
+                            (StatusCode::BAD_REQUEST, Json(response_message)).into_response()
                         }
                         ErrorKind::Other => {
                             let response_message = json!({"error": "database error", "message": "error saving record"});
-                            (StatusCode::INTERNAL_SERVER_ERROR, Json(response_message))
+                            (StatusCode::INTERNAL_SERVER_ERROR, Json(response_message)).into_response()
                         }
                         _ => {
                             let response_message = json!({"error": "database error", "message": "unable to save record"});
-                            (StatusCode::INTERNAL_SERVER_ERROR, Json(response_message))
+                            (StatusCode::INTERNAL_SERVER_ERROR, Json(response_message)).into_response()
                         }
                     }
                 }
                 _ => {
                     let response_message = json!({"error": "database error", "message": error.to_string()});
-                    (StatusCode::INTERNAL_SERVER_ERROR, Json(response_message))
+                    (StatusCode::INTERNAL_SERVER_ERROR, Json(response_message)).into_response()
                 }
             }
         }
@@ -181,28 +182,36 @@ impl AuthTokenValue {
         Self { value: token }
     }
 
-    pub async fn validate(&self, state: &AppState) -> Result<(), (StatusCode, Json<Value>)> {
-        if let Err(error) = state.repository.get_api_key_by_token(self.value.clone()).await {
-            eprintln!("Error getting API key: {}", error);
-            let response_message =
-                json!({"error": "invalid token", "message": "token not found"});
-            return Err((StatusCode::UNAUTHORIZED, Json(response_message)));
+    pub async fn validate(&self, state: &AppState) -> Result<(), AppError> {
+        match state
+            .repository
+            .get_api_key_by_token(self.value.clone())
+            .await
+        {
+            Ok(_) => Ok(()),
+            Err(sqlx::Error::RowNotFound) => Err(AppError::Unauthorized("unknown API key token")),
+            Err(error) => Err(AppError::SqlxError(error)),
         }
-        Ok(())
     }
 }
 
 impl<S: Send + Sync> FromRequestParts<S> for AuthTokenValue {
-    type Rejection = (StatusCode, Json<Value>);
+    type Rejection = AppError;
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        parts.headers.remove(axum::http::header::AUTHORIZATION);
         if let Some(key) = parts.headers.get("access_key") {
-            let auth_token = AuthTokenValue::new(key.to_str().unwrap().to_string());
-            Ok(auth_token)
+            let token = key
+                .to_str()
+                .map_err(|_| AppError::BadRequest("API key token must be valid ASCII"))?
+                .to_string();
+
+            if token.is_empty() {
+                return Err(AppError::BadRequest("API key token must not be empty"));
+            }
+
+            Ok(AuthTokenValue::new(token))
         } else {
-            let response_message = json!({"message": "no authorization header"});
-            Err((StatusCode::UNAUTHORIZED, Json(response_message)))
+            Err(AppError::Unauthorized("no API key token provided"))
         }
     }
 }
