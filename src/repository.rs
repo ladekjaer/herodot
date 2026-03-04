@@ -160,6 +160,31 @@ impl Repository {
         Ok(records)
     }
 
+    pub(crate) async fn get_record_by_filter(
+        &self,
+        filter: RecordFilter
+    ) -> Result<Vec<Record>, sqlx::Error> {
+        let mut records: Vec<Record> = Vec::new();
+
+        let bme280_records = self.get_bme280_by_filter(filter.clone()).await?;
+        let ds18b20_records = self.get_ds18b20_by_filter(filter.clone()).await?;
+
+        records.extend(bme280_records.into_iter().map(|r| {
+            let bme280_reading = BME280::new(r.temperature, r.pressure, r.humidity);
+            let reading = Reading::BME280(bme280_reading);
+            Record::new(r.id, r.timestamp, reading)
+        }));
+
+        records.extend(ds18b20_records.into_iter().map(|r| {
+            let ds18b20_reading = DS18B20::new(r.device_name, r.raw_reading);
+            let reading = Reading::DS18B20(ds18b20_reading);
+            Record::new(r.id, r.timestamp, reading)
+        }));
+
+        Ok(records)
+
+    }
+
     pub(crate) async fn get_bme280_by_filter(
         &self,
         filter: RecordFilter,
