@@ -322,7 +322,14 @@ paths:
     get:
       summary: Get records
       operationId: getRecords
-      description: Get records from the database
+      description: |
+        Get records from the database
+        
+        This is the main endpoint for retrieving records.
+        
+        The optional parameter `limit` sets the maximum number of records to return. If the parameter is not set, the default value will be applied.
+        
+        The optional parameter `from` sets the lower bound timestamp for the returned records. If the parameter is not set, no record would be rejected by this parameter.
       tags: [Records]
       parameters:
         - $ref: '#/components/parameters/From'
