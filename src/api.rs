@@ -18,6 +18,7 @@ pub(crate) fn api() -> Router<AppState> {
         .route("/records", get(get_records))
         .route("/records", put(put_record))
         .route("/records/bme280", get(get_bme280))
+        .route("/records/ds18b20", get(get_ds18b20))
         .route("/records/{record_id}", get(get_record))
 }
 
@@ -65,6 +66,24 @@ async fn get_bme280(auth_token: AuthTokenValue, Query(filter): Query<RecordFilte
     }
 
     match state.repository.get_bme280_by_filter(filter).await {
+        Ok(records) => {
+            let response_message = json!({"records": records});
+            (StatusCode::OK, Json(response_message))
+        }
+        Err(error) => {
+            eprintln!("Error getting records: {}", error);
+            let response_message = json!({"error": "database error", "message": "retrieval failed"});
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(response_message))
+        }
+    }
+}
+
+async fn get_ds18b20(auth_token: AuthTokenValue, Query(filter): Query<RecordFilter>, State(state): State<AppState>) -> impl IntoResponse {
+    if let Err(error) = auth_token.validate(&state).await {
+        return error;
+    }
+
+    match state.repository.get_ds18b20_by_filter(filter).await {
         Ok(records) => {
             let response_message = json!({"records": records});
             (StatusCode::OK, Json(response_message))

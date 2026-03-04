@@ -182,6 +182,28 @@ impl Repository {
         Ok(records)
     }
 
+    pub(crate) async fn get_ds18b20_by_filter(
+        &self,
+        filter: RecordFilter
+    ) -> Result<Vec<Ds18b20Record>, sqlx::Error> {
+        let limit = limit(filter.limit);
+        let mut query_builder = QueryBuilder::new(r#"SELECT id, device_name, raw_reading, timestamp FROM records.ds18b20"#);
+        query_builder.push(" WHERE TRUE ");
+
+        if let Some(from) = filter.from {
+            query_builder.push(" AND timestamp >= ").push_bind(from);
+        }
+
+        query_builder.push(" ORDER BY timestamp ASC");
+        query_builder.push(" LIMIT ").push_bind(limit);
+
+        let records = query_builder.build_query_as::<Ds18b20Record>()
+            .fetch_all(&self.db_pool)
+            .await?;
+
+        Ok(records)
+    }
+
     pub(crate) async fn get_ds18b20_record_by_id(
         &self,
         record_id: Uuid,
