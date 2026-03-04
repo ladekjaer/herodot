@@ -4,12 +4,13 @@ use rerec::Reading;
 use rerec::bme280::BME280;
 use rerec::ds18b20::DS18B20;
 use rerec::record::Record;
-use sqlx::PgPool;
+use sqlx::{PgPool, QueryBuilder};
 use sqlx::types::chrono;
 use uuid::Uuid;
+use crate::api::RecordFilter;
 
-const DEFAULT_LIMIT: usize = 100;
-const HARD_LIMIT: usize = 5000;
+const DEFAULT_LIMIT: u32 = 100;
+const HARD_LIMIT: u32 = 5000;
 
 #[derive(Clone)]
 pub(crate) struct Repository {
@@ -159,6 +160,28 @@ impl Repository {
         Ok(records)
     }
 
+    pub(crate) async fn get_bme280_by_filter(
+        &self,
+        filter: RecordFilter,
+    ) -> Result<Vec<Bme280Record>, sqlx::Error> {
+        let limit = limit(filter.limit);
+        let mut query_builder = QueryBuilder::new(r#"SELECT id, temperature, pressure, humidity, timestamp FROM records.bme280"#);
+        query_builder.push(" WHERE TRUE ");
+
+        if let Some(from) = filter.from {
+            query_builder.push(" AND timestamp >= ").push_bind(from);
+        }
+
+        query_builder.push(" ORDER BY timestamp ASC");
+        query_builder.push(" LIMIT ").push_bind(limit);
+
+        let records = query_builder.build_query_as::<Bme280Record>()
+            .fetch_all(&self.db_pool)
+            .await?;
+
+        Ok(records)
+    }
+
     pub(crate) async fn get_ds18b20_record_by_id(
         &self,
         record_id: Uuid,
@@ -258,11 +281,12 @@ FROM
         .await?;
         Ok(records)
     }
+}
 
-    fn limit(max_length: Option<usize>) -> usize {
-        match max_length {
-            None => DEFAULT_LIMIT,
-            Some(max_length) => std::cmp::min(max_length, HARD_LIMIT),
-        }
-    }
+fn limit(max_length: Option<u32>) -> i32 {
+    let max = match max_length {
+        None => DEFAULT_LIMIT,
+        Some(max_length) => std::cmp::min(max_length, HARD_LIMIT),
+    };
+    max as i32
 }

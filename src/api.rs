@@ -1,5 +1,5 @@
 use crate::state::AppState;
-use axum::extract::{FromRequestParts, Path, State};
+use axum::extract::{FromRequestParts, Path, Query, State};
 use axum::http::request::Parts;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
@@ -10,12 +10,14 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sqlx::error::ErrorKind;
 use sqlx::Error;
+use sqlx::types::chrono::{DateTime, Utc};
 use uuid::Uuid;
 
 pub(crate) fn api() -> Router<AppState> {
     Router::new()
         .route("/records", get(get_records))
         .route("/records", put(put_record))
+        .route("/records/bme280", get(get_bme280))
         .route("/records/{record_id}", get(get_record))
 }
 
@@ -45,6 +47,24 @@ async fn get_records(auth_token: AuthTokenValue, State(state): State<AppState>) 
     }
 
     match state.repository.get_records().await {
+        Ok(records) => {
+            let response_message = json!({"records": records});
+            (StatusCode::OK, Json(response_message))
+        }
+        Err(error) => {
+            eprintln!("Error getting records: {}", error);
+            let response_message = json!({"error": "database error", "message": "retrieval failed"});
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(response_message))
+        }
+    }
+}
+
+async fn get_bme280(auth_token: AuthTokenValue, Query(filter): Query<RecordFilter>, State(state): State<AppState>) -> impl IntoResponse {
+    if let Err(error) = auth_token.validate(&state).await {
+        return error;
+    }
+
+    match state.repository.get_bme280_by_filter(filter).await {
         Ok(records) => {
             let response_message = json!({"records": records});
             (StatusCode::OK, Json(response_message))
@@ -150,4 +170,10 @@ impl<S: Send + Sync> FromRequestParts<S> for AuthTokenValue {
             Err((StatusCode::UNAUTHORIZED, Json(response_message)))
         }
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(crate) struct RecordFilter {
+    pub from: Option<DateTime<Utc>>,
+    pub limit: Option<u32>,
 }

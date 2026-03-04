@@ -293,3 +293,12 @@ PUT {{origin}}/api/record
         client.assert(expected === actual, `Expected null, actual '${actual}'`);
     });
 %}
+
+###
+
+# curl -v -H 'access_key: 99ea32d6-e0dc-4b2c-9802-6eaeaf55bbac' -H 'Content-Type: application/json' http://localhost:8080/api/records/bme280\?from\=2026-03-03T22:00:00.000000Z
+GET http://localhost:8080/api/records/bme280?from=2026-03-03T22:00:00.000000Z
+access_key: 99ea32d6-e0dc-4b2c-9802-6eaeaf55bbac
+Content-Type: application/json
+
+###
