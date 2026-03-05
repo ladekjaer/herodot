@@ -20,11 +20,11 @@ See the [rerec documentation](https://docs.rs/rerec) for more information.
 Add a new record:
 
 ```bash
-curl -v http://localhost:8080/api/records -H 'access_key: 99ea32d6-e0dc-4b2c-9802-6eaeaf55bbac' -H 'Content-Type: application/json' -X PUT -d '{"id": "7e9b1a33-05fb-48e3-86b6-21ddc873c06f", "timestamp": "2026-02-27T09:32:45+00:00", "reading": {"DS18B20": {"device_name": "0000003e33d5", "raw_reading": 22123}}}'
+curl -v http://localhost:8080/api/records -H 'Authorization: Bearer 99ea32d6-e0dc-4b2c-9802-6eaeaf55bbac' -H 'Content-Type: application/json' -X PUT -d '{"id": "7e9b1a33-05fb-48e3-86b6-21ddc873c06f", "timestamp": "2026-02-27T09:32:45+00:00", "reading": {"DS18B20": {"device_name": "0000003e33d5", "raw_reading": 22123}}}'
 ```
 
 Get a record by its identifier:
 
 ```bash
-curl -v http://localhost:8080/api/records/00000000-0000-0000-0000-000000000000 -H 'access_key: 99ea32d6-e0dc-4b2c-9802-6eaeaf55bbac' -H 'Content-Type: application/json'
+curl -v http://localhost:8080/api/records/00000000-0000-0000-0000-000000000000 -H 'Authorization: Bearer 99ea32d6-e0dc-4b2c-9802-6eaeaf55bbac' -H 'Content-Type: application/json'
 ```

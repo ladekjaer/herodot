@@ -48,7 +48,7 @@ GET {{origin}}/status
 
 PUT {{origin}}/api/records
 Content-Type: application/json
-access_key: {{access_key}}
+Authorization: Bearer {{api_token}}
 
 {
     "id": "{{record_id}}",
@@ -90,7 +90,7 @@ access_key: {{access_key}}
 
 PUT {{origin}}/api/records
 Content-Type: application/json
-access_key: {{access_key}}
+Authorization: Bearer {{api_token}}
 
 {
     "id": "{{record_id}}",
@@ -131,7 +131,7 @@ access_key: {{access_key}}
 
 GET {{origin}}/api/records/{{record_id}}
 Content-Type: application/json
-access_key: {{access_key}}
+Authorization: Bearer {{api_token}}
 
 > {%
     client.test("Response status", function () {
@@ -175,7 +175,7 @@ access_key: {{access_key}}
 
 GET {{origin}}/api/records/{{record_id}}
 Content-Type: application/json
-access_key: {{access_key}}
+Authorization: Bearer {{api_token}}
 
 > {%
     client.test("Response status", function () {
@@ -201,7 +201,7 @@ access_key: {{access_key}}
 ###
 
 GET {{origin}}/api/records
-access_key: {{access_key}}
+Authorization: Bearer {{api_token}}
 
 > {%
     client.test("Response status", function () {
@@ -298,7 +298,7 @@ PUT {{origin}}/api/record
 
 # curl -v -H 'access_key: 99ea32d6-e0dc-4b2c-9802-6eaeaf55bbac' -H 'Content-Type: application/json' http://localhost:8080/api/records/bme280\?from\=2026-03-03T22:00:00.000000Z
 GET http://localhost:8080/api/records/bme280?from=2026-03-03T22:00:00.000000Z
-access_key: {{access_key}}
+Authorization: Bearer {{api_token}}
 Content-Type: application/json
 
 ###

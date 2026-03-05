@@ -192,20 +192,37 @@ impl<S: Send + Sync> FromRequestParts<S> for AuthTokenValue {
     type Rejection = AppError;
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        if let Some(key) = parts.headers.get("access_key") {
-            let token = key
-                .to_str()
-                .map_err(|_| AppError::BadRequest("API key token must be valid ASCII"))?
-                .to_string();
+        let value = parts
+            .headers
+            .get(axum::http::header::AUTHORIZATION)
+            .ok_or(AppError::Unauthorized(
+                "missing Authorization header (expected: Authorization: Bearer <token>)"
+            ))?;
 
-            if token.is_empty() {
-                return Err(AppError::BadRequest("API key token must not be empty"));
-            }
+        let raw = value
+            .to_str()
+            .map_err(|_| AppError::BadRequest("API key token must be valid ASCII"))?;
 
-            Ok(AuthTokenValue::new(token))
-        } else {
-            Err(AppError::Unauthorized("no API key token provided"))
+        let (scheme, token) = raw
+            .split_once(' ')
+            .ok_or(AppError::BadRequest(
+                "Authorization header must be in the format 'Bearer <token>'"
+            ))?;
+
+        if !scheme.eq_ignore_ascii_case("bearer") {
+            return Err(AppError::BadRequest(
+                "Authorization scheme must be 'Bearer'"
+            ));
         }
+
+        let token = token.trim();
+        if token.is_empty() {
+            return Err(AppError::BadRequest(
+                "Bearer token must not be empty"
+            ));
+        }
+
+        Ok(AuthTokenValue::new(token.to_string()))
     }
 }
 

@@ -14,14 +14,14 @@ servers:
     description: local server for development
 
 security:
-  - defaultApiKey: [ ]
+  - bearerAuth: []: [ ]
 
 components:
   securitySchemes:
-    defaultApiKey:
-      type: apiKey
-      name: access_key
-      in: header
+    bearerAuth:
+      type: http
+      name: bearer
+      bearerFormat: UUID
   schemas:
     RecordResponse:
       title: Record response
