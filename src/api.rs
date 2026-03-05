@@ -43,7 +43,7 @@ async fn get_records_by_filter(
 ) -> AppResult<impl IntoResponse> {
     auth_token.validate(&state).await?;
 
-    let records = state.repository.get_record_by_filter(filter).await?;
+    let records = state.repository.get_record_by_filter(&filter).await?;
 
     Ok((StatusCode::OK, Json(json!({"records": records}))))
 }
@@ -55,7 +55,7 @@ async fn get_bme280(
 ) -> AppResult<impl IntoResponse> {
     auth_token.validate(&state).await?;
 
-    let records = state.repository.get_bme280_by_filter(filter).await?;
+    let records = state.repository.get_bme280_by_filter(&filter).await?;
 
     Ok((StatusCode::OK, Json(json!({"records": records}))))
 }
@@ -67,7 +67,7 @@ async fn get_ds18b20(
 ) -> AppResult<impl IntoResponse> {
     auth_token.validate(&state).await?;
 
-    let records = state.repository.get_ds18b20_by_filter(filter).await?;
+    let records = state.repository.get_ds18b20_by_filter(&filter).await?;
 
     Ok((StatusCode::OK, Json(json!({"records": records}))))
 }
@@ -107,7 +107,7 @@ impl AuthTokenValue {
     pub async fn validate(&self, state: &AppState) -> Result<(), AppError> {
         match state
             .repository
-            .get_api_key_by_token(self.value.clone())
+            .get_api_key_by_token(&self.value)
             .await
         {
             Ok(_) => Ok(()),

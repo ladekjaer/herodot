@@ -167,19 +167,19 @@ impl Repository {
         .fetch_all(&self.db_pool)
         .await?;
 
-        let records: Vec<Record> = records.into_iter().map(|r| Record::from(r)).collect();
+        let records: Vec<Record> = records.into_iter().map(Record::from).collect();
 
         Ok(records)
     }
 
     pub(crate) async fn get_record_by_filter(
         &self,
-        filter: RecordFilter
+        filter: &RecordFilter
     ) -> Result<Vec<Record>, sqlx::Error> {
         let mut records: Vec<Record> = Vec::new();
 
-        let bme280_records = self.get_bme280_by_filter(filter.clone()).await?;
-        let ds18b20_records = self.get_ds18b20_by_filter(filter.clone()).await?;
+        let bme280_records = self.get_bme280_by_filter(filter).await?;
+        let ds18b20_records = self.get_ds18b20_by_filter(filter).await?;
 
         records.extend(bme280_records.into_iter());
         records.extend(ds18b20_records.into_iter());
@@ -190,7 +190,7 @@ impl Repository {
 
     pub(crate) async fn get_bme280_by_filter(
         &self,
-        filter: RecordFilter,
+        filter: &RecordFilter,
     ) -> Result<Vec<Record>, sqlx::Error> {
         let limit = limit(filter.limit);
         let mut query_builder = QueryBuilder::new(r#"SELECT id, temperature, pressure, humidity, timestamp FROM records.bme280"#);
@@ -207,14 +207,14 @@ impl Repository {
             .fetch_all(&self.db_pool)
             .await?;
 
-        let records: Vec<Record> = records.into_iter().map(|r| Record::from(r)).collect();
+        let records: Vec<Record> = records.into_iter().map(Record::from).collect();
 
         Ok(records)
     }
 
     pub(crate) async fn get_ds18b20_by_filter(
         &self,
-        filter: RecordFilter
+        filter: &RecordFilter
     ) -> Result<Vec<Record>, sqlx::Error> {
         let limit = limit(filter.limit);
         let mut query_builder = QueryBuilder::new(r#"SELECT id, device_name, raw_reading, timestamp FROM records.ds18b20"#);
@@ -231,7 +231,7 @@ impl Repository {
             .fetch_all(&self.db_pool)
             .await?;
 
-        let records: Vec<Record> = records.into_iter().map(|r| Record::from(r)).collect();
+        let records: Vec<Record> = records.into_iter().map(Record::from).collect();
 
         Ok(records)
     }
@@ -262,7 +262,7 @@ impl Repository {
         )
         .fetch_all(&self.db_pool)
         .await?;
-        let records: Vec<Record> = records.into_iter().map(|r| Record::from(r)).collect();
+        let records: Vec<Record> = records.into_iter().map(Record::from).collect();
         Ok(records)
     }
 
@@ -309,7 +309,7 @@ impl Repository {
 
     pub(crate) async fn get_api_key_by_token(
         &self,
-        token_value: String,
+        token_value: &str,
     ) -> Result<ApiKey, sqlx::Error> {
         let token = sqlx::query_as::<_, ApiKey>(
             r#"
