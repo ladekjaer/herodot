@@ -1,3 +1,4 @@
+use axum::middleware;
 use tower_sessions::SessionManagerLayer;
 use tower_sessions_sqlx_store::PostgresStore;
 use authentication::api_key;
@@ -5,6 +6,7 @@ use authentication::api_key;
 mod api;
 mod authentication;
 mod error;
+mod http_security_headers;
 mod repository;
 mod state;
 mod status;
@@ -27,4 +29,5 @@ pub async fn app(db_pool: sqlx::PgPool) -> axum::Router {
         .nest("/api", api::api())
         .with_state(state)
         .layer(session_layer)
+        .layer(middleware::from_fn(http_security_headers::add_security_headers))
 }

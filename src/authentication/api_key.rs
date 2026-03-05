@@ -1,7 +1,7 @@
 use crate::state::AppState;
 use crate::web::TERA;
 use axum::extract::State;
-use axum::http::StatusCode;
+use axum::http::{header, HeaderValue, StatusCode};
 use axum::response::{Html, IntoResponse};
 use axum::routing::post;
 use axum::{Form, Router};
@@ -15,7 +15,11 @@ pub(crate) fn router() -> Router<AppState> {
         .route("/", post(create_api_key))
 }
 
-async fn create_api_key(user: AuthUser, State(state): State<AppState>, Form(api_key_form_data): Form<ApiKeyFormData>) -> impl IntoResponse {
+async fn create_api_key(
+    user: AuthUser,
+    State(state): State<AppState>,
+    Form(api_key_form_data): Form<ApiKeyFormData>
+) -> impl IntoResponse {
     if user.username() != api_key_form_data.owner {
         eprintln!("REJECTED token creation attempt: owner does not match");
         return (StatusCode::FORBIDDEN, "Creation of keys owner by other users is not allowed.").into_response();
@@ -27,7 +31,15 @@ async fn create_api_key(user: AuthUser, State(state): State<AppState>, Form(api_
             context.insert("username", user.username());
             context.insert("key", &key);
             let output = TERA.render("api_key.html", &context).unwrap();
-            (StatusCode::CREATED, Html(output)).into_response()
+
+            let mut res = (StatusCode::CREATED, Html(output)).into_response();
+
+            res.headers_mut().insert(
+                header::CACHE_CONTROL,
+                HeaderValue::from_static("no-store")
+            );
+
+            res
         }
         Err(error) => {
             eprintln!("Failed to create token: {}", error);
