@@ -36,7 +36,7 @@ pub(crate) fn user_router() -> Router<AppState> {
 
 async fn register(State(state): State<AppState>, Form(credentials): Form<UserCreationFormData>) -> impl IntoResponse {
     if credentials.password != credentials.password_confirmation {
-        eprintln!("REJECTED user creation attempt: password confirmation does not match");
+        tracing::debug!("REJECTED user creation attempt: password confirmation does not match");
         return (StatusCode::BAD_REQUEST, "Bad Request: Password confirmation must match password!");
     }
 
@@ -45,7 +45,7 @@ async fn register(State(state): State<AppState>, Form(credentials): Form<UserCre
             (StatusCode::CREATED, "User created successfully")
         }
         Err(err) => {
-            eprintln!("REJECTED user creation attempt: {}", err);
+            tracing::error!("REJECTED user creation attempt: {}", err);
             (StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error: Could not create user!")
         }
     }
@@ -53,7 +53,7 @@ async fn register(State(state): State<AppState>, Form(credentials): Form<UserCre
 
 async fn login(session: Session, State(state): State<AppState>, Form(credentials): Form<LoginFormData>) -> impl IntoResponse {
     let username = credentials.username.clone();
-    println!("Login attempt with username: {}", username);
+    tracing::debug!("login attempt, username: {}", username);
     let user = state.repository.get_user_by_username(&credentials.username).await;
     match user {
         Ok(user) => {
@@ -61,22 +61,22 @@ async fn login(session: Session, State(state): State<AppState>, Form(credentials
             if user.credentials_is(credentials).unwrap() {
                 match session.insert("user", user.clone()).await {
                     Ok(_) => {
-                        println!("USER LOGIN by user {}", username);
+                        tracing::debug!("user logged in, username: {}", username);
                         Redirect::to("/")
                     },
                     Err(err) => {
-                        eprintln!("USER LOGIN ERROR: Failed to save session data for user {}: {}", username, err);
+                        tracing::error!("User login error. Failed to save session data for user {}: {}", username, err);
                         Redirect::to("/login?error=internal_error")
                     }
                 }
 
             } else {
-                eprintln!("USER LOGIN REJECTED: Wrong credentials for by user: {}", username);
+                tracing::debug!("User login rejected, wrong credential, username: {}", username);
                 Redirect::to("/login?error=wrong_credentials")
             }
         },
         Err(err) => {
-            eprintln!("USER LOGIN ERROR: Failed to look up user: {}, due to: {}", username, err);
+            tracing::debug!("User retrieval error, failed to look up user: {}, due to: {}", username, err);
             Redirect::to("/login?error=unable_to_lookup_user")
         }
     }

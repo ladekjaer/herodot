@@ -15,7 +15,7 @@ pub static TERA: std::sync::LazyLock<tera::Tera> = std::sync::LazyLock::new(|| {
     match tera::Tera::new("templates/**/*") {
         Ok(t) => t,
         Err(error) => {
-            eprintln!("Tera initialization error: {}", error);
+            tracing::error!("Tera initialization error: {}", error);
             std::process::exit(1);
         }
     }
@@ -56,7 +56,7 @@ async fn me(user: AuthUser) -> impl IntoResponse {
             Html(output).into_response()
         },
         Err(error) => {
-            eprintln!("Error rendering template ({}): {}", template, error);
+            tracing::warn!("Error rendering template ({}): {}", template, error);
             StatusCode::INTERNAL_SERVER_ERROR.into_response()
         }
     }

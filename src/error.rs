@@ -91,10 +91,10 @@ impl AppError {
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         match &self {
-            AppError::SqlxError(error) => eprintln!("AppError(Sqlx): {error}"),
-            AppError::TeraError(error) => eprintln!("AppError(Tera): {error}"),
-            AppError::SessionError(error) => eprintln!("AppError(Session): {error}"),
-            AppError::User(error) => eprintln!("AppError(User): {error}"),
+            AppError::SqlxError(error) => tracing::warn!("AppError(Sqlx): {error}"),
+            AppError::TeraError(error) => tracing::warn!("AppError(Tera): {error}"),
+            AppError::SessionError(error) => tracing::warn!("AppError(Session): {error}"),
+            AppError::User(error) => tracing::warn!("AppError(User): {error}"),
             _ => {}
         }
 

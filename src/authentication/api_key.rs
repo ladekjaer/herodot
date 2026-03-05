@@ -21,7 +21,7 @@ async fn create_api_key(
     Form(api_key_form_data): Form<ApiKeyFormData>
 ) -> impl IntoResponse {
     if user.username() != api_key_form_data.owner {
-        eprintln!("REJECTED token creation attempt: owner does not match");
+        tracing::warn!("REJECTED token creation attempt: owner does not match");
         return (StatusCode::FORBIDDEN, "Creation of keys owner by other users is not allowed.").into_response();
     }
     let key = ApiKey::from(api_key_form_data);
@@ -42,7 +42,7 @@ async fn create_api_key(
             res
         }
         Err(error) => {
-            eprintln!("Failed to create token: {}", error);
+            tracing::error!("Failed to create token: {}", error);
             (StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error: Could not create token!").into_response()
         }
     }
