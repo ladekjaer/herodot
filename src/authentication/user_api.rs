@@ -7,6 +7,8 @@ use axum::routing::{get, post};
 use axum::{Form, Router};
 use serde::Deserialize;
 use tower_sessions::Session;
+use crate::error::AppError;
+
 #[derive(Debug, Clone, Deserialize)]
 struct LoginFormData {
     username: String,
@@ -51,33 +53,36 @@ async fn register(State(state): State<AppState>, Form(credentials): Form<UserCre
     }
 }
 
-async fn login(session: Session, State(state): State<AppState>, Form(credentials): Form<LoginFormData>) -> impl IntoResponse {
+async fn login(
+    session: Session,
+    State(state): State<AppState>,
+    Form(credentials): Form<LoginFormData>
+) -> Result<impl IntoResponse, AppError> {
     let username = credentials.username.clone();
     tracing::debug!("login attempt, username: {}", username);
-    let user = state.repository.get_user_by_username(&credentials.username).await;
-    match user {
+    match state.repository.get_user_by_username(&credentials.username).await {
         Ok(user) => {
             let credentials: UserCredentials = credentials.into();
-            if user.credentials_is(credentials).unwrap() {
+            if user.credentials_is(credentials)? {
                 match session.insert("user", user.clone()).await {
                     Ok(_) => {
                         tracing::debug!("user logged in, username: {}", username);
-                        Redirect::to("/")
+                        Ok(Redirect::to("/"))
                     },
                     Err(err) => {
                         tracing::error!("User login error. Failed to save session data for user {}: {}", username, err);
-                        Redirect::to("/login?error=internal_error")
+                        Ok(Redirect::to("/login?error=internal_error"))
                     }
                 }
 
             } else {
                 tracing::debug!("User login rejected, wrong credential, username: {}", username);
-                Redirect::to("/login?error=wrong_credentials")
+                Ok(Redirect::to("/login?error=wrong_credentials"))
             }
         },
         Err(err) => {
             tracing::debug!("User retrieval error, failed to look up user: {}, due to: {}", username, err);
-            Redirect::to("/login?error=unable_to_lookup_user")
+            Ok(Redirect::to("/login?error=unable_to_lookup_user"))
         }
     }
 }
