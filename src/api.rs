@@ -1,4 +1,4 @@
-use crate::error::AppError;
+use crate::error::{AppError, AppResult};
 use crate::state::AppState;
 use axum::extract::{FromRequestParts, Path, Query, State};
 use axum::http::request::Parts;
@@ -25,7 +25,7 @@ async fn get_record_by_id(
     auth_token: AuthTokenValue,
     State(state): State<AppState>,
     Path(record_id): Path<Uuid>
-) -> Result<impl IntoResponse, AppError> {
+) -> AppResult<impl IntoResponse> {
     auth_token.validate(&state).await?;
 
     let record = state.repository.get_record_by_id(record_id).await?;
@@ -40,7 +40,7 @@ async fn get_records_by_filter(
     auth_token: AuthTokenValue,
     Query(filter): Query<RecordFilter>,
     State(state): State<AppState>,
-) -> Result<impl IntoResponse, AppError> {
+) -> AppResult<impl IntoResponse> {
     auth_token.validate(&state).await?;
 
     let records = state.repository.get_record_by_filter(filter).await?;
@@ -52,7 +52,7 @@ async fn get_bme280(
     auth_token: AuthTokenValue,
     Query(filter): Query<RecordFilter>,
     State(state): State<AppState>,
-) -> Result<impl IntoResponse, AppError> {
+) -> AppResult<impl IntoResponse> {
     auth_token.validate(&state).await?;
 
     let records = state.repository.get_bme280_by_filter(filter).await?;
@@ -64,7 +64,7 @@ async fn get_ds18b20(
     auth_token: AuthTokenValue,
     Query(filter): Query<RecordFilter>,
     State(state): State<AppState>
-) -> Result<impl IntoResponse, AppError> {
+) -> AppResult<impl IntoResponse> {
     auth_token.validate(&state).await?;
 
     let records = state.repository.get_ds18b20_by_filter(filter).await?;
@@ -76,7 +76,7 @@ async fn put_record(
     auth_token: AuthTokenValue,
     State(state): State<AppState>,
     Json(record): Json<Record>,
-) -> Result<impl IntoResponse, AppError> {
+) -> AppResult<impl IntoResponse> {
     auth_token.validate(&state).await?;
 
     let record_id = state

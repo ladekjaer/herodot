@@ -7,7 +7,7 @@ use axum::routing::{get, post};
 use axum::{Form, Router};
 use serde::Deserialize;
 use tower_sessions::Session;
-use crate::error::AppError;
+use crate::error::AppResult;
 
 #[derive(Debug, Clone, Deserialize)]
 struct LoginFormData {
@@ -36,7 +36,10 @@ pub(crate) fn user_router() -> Router<AppState> {
         .route("/logout", get(logout))
 }
 
-async fn register(State(state): State<AppState>, Form(credentials): Form<UserCreationFormData>) -> impl IntoResponse {
+async fn register(
+    State(state): State<AppState>,
+    Form(credentials): Form<UserCreationFormData>
+) -> impl IntoResponse {
     if credentials.password != credentials.password_confirmation {
         tracing::debug!("REJECTED user creation attempt: password confirmation does not match");
         return (StatusCode::BAD_REQUEST, "Bad Request: Password confirmation must match password!");
@@ -57,7 +60,7 @@ async fn login(
     session: Session,
     State(state): State<AppState>,
     Form(credentials): Form<LoginFormData>
-) -> Result<impl IntoResponse, AppError> {
+) -> AppResult<impl IntoResponse> {
     let username = credentials.username.clone();
     tracing::debug!("login attempt, username: {}", username);
     match state.repository.get_user_by_username(&credentials.username).await {
