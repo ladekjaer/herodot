@@ -11,7 +11,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::error::ErrorKind;
 use sqlx::types::chrono::{DateTime, Utc};
-use sqlx::Error;
 use uuid::Uuid;
 
 pub(crate) fn api() -> Router<AppState> {
