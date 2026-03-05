@@ -7,7 +7,7 @@ use axum::routing::{get, post};
 use axum::{Form, Router};
 use serde::Deserialize;
 use tower_sessions::Session;
-use crate::error::AppResult;
+use crate::error::{AppError, AppResult};
 
 #[derive(Debug, Clone, Deserialize)]
 struct LoginFormData {
@@ -39,19 +39,19 @@ pub(crate) fn user_router() -> Router<AppState> {
 async fn register(
     State(state): State<AppState>,
     Form(credentials): Form<UserCreationFormData>
-) -> impl IntoResponse {
+) -> AppResult<impl IntoResponse> {
     if credentials.password != credentials.password_confirmation {
         tracing::debug!("REJECTED user creation attempt: password confirmation does not match");
-        return (StatusCode::BAD_REQUEST, "Bad Request: Password confirmation must match password!");
+        return Err(AppError::BadRequest("Bad Request: Password confirmation must match password!"));
     }
 
     match state.repository.create_user(&credentials.username, &credentials.password).await {
         Ok(_user) => {
-            (StatusCode::CREATED, "User created successfully")
+            Ok((StatusCode::CREATED, "User created successfully"))
         }
         Err(err) => {
             tracing::error!("REJECTED user creation attempt: {}", err);
-            (StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error: Could not create user!")
+            Err(AppError::InternalServerError("Internal Server Error: Could not create user!"))
         }
     }
 }
