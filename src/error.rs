@@ -76,7 +76,7 @@ impl AppError {
 
         match error {
             sqlx::Error::Database(db_error) => match db_error.kind() {
-                ErrorKind::UniqueViolation => AppError::Conflict("record already exist"),
+                ErrorKind::UniqueViolation => AppError::Conflict("record already exists"),
                 ErrorKind::ForeignKeyViolation => AppError::BadRequest("invalid record: references non-existing entity"),
                 ErrorKind::NotNullViolation => AppError::BadRequest("invalid record: missing required field"),
                 ErrorKind::CheckViolation => AppError::BadRequest("invalid record: violates constraints"),
