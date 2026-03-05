@@ -4,12 +4,12 @@ use axum::http::StatusCode;
 use axum::response::{Html, IntoResponse};
 use axum::routing::get;
 use axum::Router;
-use record_display::RecordDisplay;
+use record_view::RecordView;
 use crate::authentication::user_api;
 use crate::authentication::user_auth::AuthUser;
-use crate::web::record_display::{Bme280RecordDisplay, Ds18b20RecordDisplay};
+use crate::web::record_view::{Bme280RecordView, Ds18b20RecordView};
 
-mod record_display;
+mod record_view;
 
 pub static TERA: std::sync::LazyLock<tera::Tera> = std::sync::LazyLock::new(|| {
     match tera::Tera::new("templates/**/*") {
@@ -90,7 +90,7 @@ async fn records(user: AuthUser, State(state): State<AppState>) -> impl IntoResp
     context.insert("username", user.username());
 
     let records = state.repository.get_records().await.unwrap();
-    let records: Vec<RecordDisplay> = records.into_iter().map(|r| r.into()).collect();
+    let records: Vec<RecordView> = records.into_iter().map(|r| r.into()).collect();
     context.insert("records", &records);
     let output = TERA.render("records.html", &context).unwrap();
     Html(output).into_response()
@@ -101,7 +101,7 @@ async fn bme280(user: AuthUser, State(state): State<AppState>) -> impl IntoRespo
     context.insert("username", user.username());
 
     let records = state.repository.get_all_bme280_records().await.unwrap();
-    let records: Vec<Bme280RecordDisplay> = records
+    let records: Vec<Bme280RecordView> = records
         .into_iter()
         .map(|r| r
             .try_into()
@@ -117,7 +117,7 @@ async fn ds18b20(user: AuthUser, State(state): State<AppState>) -> impl IntoResp
     context.insert("username", user.username());
 
     let records = state.repository.get_all_ds18b20_records().await.unwrap();
-    let records: Vec<Ds18b20RecordDisplay> = records
+    let records: Vec<Ds18b20RecordView> = records
         .into_iter()
         .map(|r| r
             .try_into()

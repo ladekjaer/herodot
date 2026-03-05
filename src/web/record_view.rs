@@ -5,13 +5,13 @@ use sqlx::types::chrono;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RecordDisplay {
+pub struct RecordView {
     pub id: String,
     pub timestamp: String,
     pub reading: String,
 }
 
-impl From<Record> for RecordDisplay {
+impl From<Record> for RecordView {
     fn from(value: Record) -> Self {
         Self {
             id: value.id().to_string(),
@@ -22,7 +22,7 @@ impl From<Record> for RecordDisplay {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub(super) struct Bme280RecordDisplay {
+pub(super) struct Bme280RecordView {
     id: Uuid,
     temperature: f32,
     pressure: f32,
@@ -31,21 +31,21 @@ pub(super) struct Bme280RecordDisplay {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub(super) struct Ds18b20RecordDisplay {
+pub(super) struct Ds18b20RecordView {
     id: Uuid,
     device_name: String,
     raw_reading: i32,
     timestamp: chrono::DateTime<chrono::Utc>,
 }
 
-impl TryFrom<Record> for Bme280RecordDisplay {
+impl TryFrom<Record> for Bme280RecordView {
     type Error = ();
 
     fn try_from(value: Record) -> Result<Self, Self::Error> {
         let reading = value.reading().clone();
         match reading {
             Reading::BME280(reading) => {
-                Ok(Bme280RecordDisplay {
+                Ok(Bme280RecordView {
                     id: value.id(),
                     temperature: reading.temperature(),
                     pressure: reading.pressure(),
@@ -58,13 +58,13 @@ impl TryFrom<Record> for Bme280RecordDisplay {
     }
 }
 
-impl TryFrom<Record> for Ds18b20RecordDisplay {
+impl TryFrom<Record> for Ds18b20RecordView {
     type Error = ();
 
     fn try_from(value: Record) -> Result<Self, Self::Error> {
         match value.reading() {
             Reading::DS18B20(reading) => {
-                Ok(Ds18b20RecordDisplay {
+                Ok(Ds18b20RecordView {
                     id: value.id(),
                     device_name: reading.device_name().to_string(),
                     raw_reading: reading.raw_reading(),
