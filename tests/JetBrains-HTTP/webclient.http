@@ -191,7 +191,7 @@ access_key: {{access_key}}
     });
 
     client.test("Response body", function () {
-        let expected = {"error": "record not found", "message": "No record with the supplied id was found"};
+        let expected = {"error": "NOT_FOUND", "message": "No record with the supplied id was found"};
         let actual = response.body;
         client.assert(expected.error === actual.error, `Expected error '${expected.error}', actual error '${actual.error}'`)
         client.assert(expected.message === actual.message, `Expected body '${expected.message}', actual '${actual.message}'`);

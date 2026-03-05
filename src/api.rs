@@ -27,23 +27,20 @@ async fn get_record_by_id(
     auth_token: AuthTokenValue,
     State(state): State<AppState>,
     Path(record_id): Path<Uuid>
-) -> impl IntoResponse {
-    if let Err(error) = auth_token.validate(&state).await {
-        return error.into_response();
-    }
+) -> Result<impl IntoResponse, AppError> {
+    auth_token.validate(&state).await?;
 
-    match state.repository.get_record_by_id(record_id).await {
-        Ok(record) => {
-            match record {
-                None => (StatusCode::NOT_FOUND, Json(json!({"error": "record not found", "message": "No record with the supplied id was found"}))).into_response(),
-                Some(record) => (StatusCode::OK, Json(json!({"record": record}))).into_response()
-            }
-        }
-        Err(error) => {
+    let record = state
+        .repository
+        .get_record_by_id(record_id)
+        .await.map_err(|error| {
             eprintln!("Error getting record: {}", error);
-            let response_message = json!({"error": "database error", "message": "retrieval failed"});
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(response_message)).into_response()
-        }
+            AppError::InternalServerError("retrieval from database failed")
+        })?;
+
+    match record {
+        Some(record) => Ok((StatusCode::OK, Json(json!({"record": record})))),
+        None => Err(AppError::NotFound("No record with the supplied id was found"))
     }
 }
 
@@ -108,59 +105,65 @@ async fn put_record(
     auth_token: AuthTokenValue,
     State(state): State<AppState>,
     Json(record): Json<Record>,
-) -> impl IntoResponse {
-    if let Err(error) = auth_token.validate(&state).await {
-        return error.into_response();
-    }
+) -> Result<impl IntoResponse, AppError> {
+    auth_token.validate(&state).await?;
 
-    println!("RECORD PUT request: {:?}", record);
-
-    match state.repository.commit_record(record).await {
-        Ok(record_id) => {
-            let reply = json!({
-                "message": "record saved successfully",
-                "record_id": record_id
-            });
-            (StatusCode::CREATED, Json(reply)).into_response()
-        }
+    let record_id = match state.repository.commit_record(record).await {
+        Ok(record_id) => record_id,
         Err(error) => {
             eprintln!("Error saving record: {:?}", error);
-            match error {
-                Error::Database(error) => {
-                    match error.kind() {
-                        ErrorKind::UniqueViolation => {
-                            let response_message = json!({"error": "duplicate record", "message": "a record with an id of a record that already exists"});
-                            (StatusCode::CONFLICT, Json(response_message)).into_response()
-                        }
-                        ErrorKind::ForeignKeyViolation => {
-                            let response_message = json!({"error": "invalid record", "message": "record references non-existing record"});
-                            (StatusCode::BAD_REQUEST, Json(response_message)).into_response()
-                        }
-                        ErrorKind::NotNullViolation => {
-                            let response_message = json!({"error": "invalid record", "message": "record is missing required fields"});
-                            (StatusCode::BAD_REQUEST, Json(response_message)).into_response()
-                        }
-                        ErrorKind::CheckViolation => {
-                            let response_message = json!({"error": "invalid record", "message": "record is invalid"});
-                            (StatusCode::BAD_REQUEST, Json(response_message)).into_response()
-                        }
-                        ErrorKind::Other => {
-                            let response_message = json!({"error": "database error", "message": "error saving record"});
-                            (StatusCode::INTERNAL_SERVER_ERROR, Json(response_message)).into_response()
-                        }
-                        _ => {
-                            let response_message = json!({"error": "database error", "message": "unable to save record"});
-                            (StatusCode::INTERNAL_SERVER_ERROR, Json(response_message)).into_response()
-                        }
+
+            return match error {
+                sqlx::Error::Database(error) => match error.kind() {
+                    ErrorKind::UniqueViolation => {
+                        Ok((
+                            StatusCode::CONFLICT,
+                            Json(json!({"error": "duplicate record", "message": "a record with an id of a record that already exists"}))
+                        ))
+                    }
+                    ErrorKind::ForeignKeyViolation => {
+                        Ok((
+                            StatusCode::BAD_REQUEST,
+                            Json(json!({"error": "invalid record", "message": "record references non-existing record"}))
+                        ))
+                    }
+                    ErrorKind::NotNullViolation => {
+                        Ok((
+                            StatusCode::BAD_REQUEST,
+                            Json(json!({
+                                "error": "invalid record",
+                                "message": "record is missing required fields"
+                            })),
+                        ))
+                    }
+                    ErrorKind::CheckViolation => {
+                        Ok((
+                            StatusCode::BAD_REQUEST,
+                            Json(json!({
+                                "error": "invalid record",
+                                "message": "record is invalid"
+                            })),
+                        ))
+                    }
+                    ErrorKind::Other => {
+                        Err(AppError::InternalServerError("error saving record"))
+                    }
+                    _ => {
+                        Err(AppError::InternalServerError("unable to save record"))
                     }
                 }
-                _ => {
-                    let response_message = json!({"error": "database error", "message": error.to_string()});
-                    (StatusCode::INTERNAL_SERVER_ERROR, Json(response_message)).into_response()
-                }
+                _ => Err(AppError::SqlxError(error)),
             }
         }
-    }
+    };
+
+    Ok((
+        StatusCode::CREATED,
+        Json(json!({
+            "message": "record saved successfully",
+            "record_id": record_id
+        }))
+    ))
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
