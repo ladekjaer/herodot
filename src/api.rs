@@ -9,7 +9,6 @@ use axum::{Json, Router};
 use rerec::record::Record;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use sqlx::error::ErrorKind;
 use sqlx::types::chrono::{DateTime, Utc};
 use uuid::Uuid;
 

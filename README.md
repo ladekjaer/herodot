@@ -15,6 +15,12 @@ type of sensor. Records and readings are externally defined in
 [rerec](https://github.com/ladekjaer/rerec), which can be installed with cargo.
 See the [rerec documentation](https://docs.rs/rerec) for more information.
 
+If the database runs with matching settings, the application can be started with:
+
+```bash
+RUST_LOG=herodot=debug,tower_http=debug PORT=8080 DATABASE_URL=postgres://webapp:password@localhost:5432/herodot cargo run
+```
+
 ## Examples
 
 Add a new record:
