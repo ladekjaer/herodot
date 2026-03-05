@@ -14,13 +14,13 @@ servers:
     description: local server for development
 
 security:
-  - bearerAuth: []: [ ]
+  - bearerAuth: []
 
 components:
   securitySchemes:
     bearerAuth:
       type: http
-      name: bearer
+      scheme: bearer
       bearerFormat: UUID
   schemas:
     RecordResponse:
