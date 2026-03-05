@@ -12,6 +12,7 @@ pub enum AppError {
     Unauthorized(&'static str),
     Forbidden(&'static str),
     NotFound(&'static str),
+    Conflict(&'static str),
     InternalServerError(&'static str),
 
     SqlxError(sqlx::Error),
@@ -27,6 +28,7 @@ impl AppError {
             AppError::Unauthorized(_) => StatusCode::UNAUTHORIZED,
             AppError::Forbidden(_) => StatusCode::FORBIDDEN,
             AppError::NotFound(_) => StatusCode::NOT_FOUND,
+            AppError::Conflict(_) => StatusCode::CONFLICT,
             AppError::InternalServerError(_) => StatusCode::INTERNAL_SERVER_ERROR,
 
             AppError::SqlxError(error) => match error {
@@ -45,6 +47,7 @@ impl AppError {
             | AppError::Unauthorized(msg)
             | AppError::Forbidden(msg)
             | AppError::NotFound(msg)
+            | AppError::Conflict(msg)
             | AppError::InternalServerError(msg) => msg,
             
             AppError::SqlxError(_) => "database error",
@@ -60,11 +63,27 @@ impl AppError {
             AppError::Unauthorized(_) => "UNAUTHORIZED",
             AppError::Forbidden(_) => "FORBIDDEN",
             AppError::NotFound(_) => "NOT_FOUND",
+            AppError::Conflict(_) => "CONFLICT",
             AppError::InternalServerError(_) => "INTERNAL_SERVER_ERROR",
             AppError::SqlxError(_) => "DATABASE_ERROR",
             AppError::TeraError(_) => "TEMPLATE_ERROR",
             AppError::SessionError(_) => "SESSION_ERROR",
             AppError::User(_) => "USER_HANDLING_ERROR",
+        }
+    }
+
+    pub fn from_commit_record_error(error: sqlx::Error) -> Self {
+        use sqlx::error::ErrorKind;
+
+        match error {
+            sqlx::Error::Database(db_error) => match db_error.kind() {
+                ErrorKind::UniqueViolation => AppError::Conflict("record already exist"),
+                ErrorKind::ForeignKeyViolation => AppError::BadRequest("invalid record: references non-existing entity"),
+                ErrorKind::NotNullViolation => AppError::BadRequest("invalid record: missing required field"),
+                ErrorKind::CheckViolation => AppError::BadRequest("invalid record: violates constraints"),
+                _ => AppError::SqlxError(sqlx::Error::Database(db_error)),
+            },
+            other => AppError::SqlxError(other),
         }
     }
 }

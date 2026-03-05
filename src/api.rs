@@ -29,13 +29,7 @@ async fn get_record_by_id(
 ) -> Result<impl IntoResponse, AppError> {
     auth_token.validate(&state).await?;
 
-    let record = state
-        .repository
-        .get_record_by_id(record_id)
-        .await.map_err(|error| {
-            eprintln!("Error getting record: {}", error);
-            AppError::InternalServerError("retrieval from database failed")
-        })?;
+    let record = state.repository.get_record_by_id(record_id).await?;
 
     match record {
         Some(record) => Ok((StatusCode::OK, Json(json!({"record": record})))),
@@ -50,14 +44,7 @@ async fn get_records_by_filter(
 ) -> Result<impl IntoResponse, AppError> {
     auth_token.validate(&state).await?;
 
-    let records = state
-        .repository
-        .get_record_by_filter(filter)
-        .await
-        .map_err(|error| {
-            eprintln!("Error getting records: {}", error);
-            AppError::InternalServerError("retrieval from database failed")
-        })?;
+    let records = state.repository.get_record_by_filter(filter).await?;
 
     Ok((StatusCode::OK, Json(json!({"records": records}))))
 }
@@ -69,14 +56,7 @@ async fn get_bme280(
 ) -> Result<impl IntoResponse, AppError> {
     auth_token.validate(&state).await?;
 
-    let records = state
-        .repository
-        .get_bme280_by_filter(filter)
-        .await
-        .map_err(|error| {
-            eprintln!("Error getting records: {}", error);
-            AppError::InternalServerError("retrieval from database failed")
-        })?;
+    let records = state.repository.get_bme280_by_filter(filter).await?;
 
     Ok((StatusCode::OK, Json(json!({"records": records}))))
 }
@@ -88,14 +68,7 @@ async fn get_ds18b20(
 ) -> Result<impl IntoResponse, AppError> {
     auth_token.validate(&state).await?;
 
-    let records = state
-        .repository
-        .get_ds18b20_by_filter(filter)
-        .await
-        .map_err(|error| {
-            eprintln!("Error getting records: {}", error);
-            AppError::InternalServerError("retrieval from database failed")
-        })?;
+    let records = state.repository.get_ds18b20_by_filter(filter).await?;
 
     Ok((StatusCode::OK, Json(json!({"records": records}))))
 }
@@ -107,54 +80,11 @@ async fn put_record(
 ) -> Result<impl IntoResponse, AppError> {
     auth_token.validate(&state).await?;
 
-    let record_id = match state.repository.commit_record(record).await {
-        Ok(record_id) => record_id,
-        Err(error) => {
-            eprintln!("Error saving record: {:?}", error);
-
-            return match error {
-                sqlx::Error::Database(error) => match error.kind() {
-                    ErrorKind::UniqueViolation => {
-                        Ok((
-                            StatusCode::CONFLICT,
-                            Json(json!({"error": "duplicate record", "message": "a record with an id of a record that already exists"}))
-                        ))
-                    }
-                    ErrorKind::ForeignKeyViolation => {
-                        Ok((
-                            StatusCode::BAD_REQUEST,
-                            Json(json!({"error": "invalid record", "message": "record references non-existing record"}))
-                        ))
-                    }
-                    ErrorKind::NotNullViolation => {
-                        Ok((
-                            StatusCode::BAD_REQUEST,
-                            Json(json!({
-                                "error": "invalid record",
-                                "message": "record is missing required fields"
-                            })),
-                        ))
-                    }
-                    ErrorKind::CheckViolation => {
-                        Ok((
-                            StatusCode::BAD_REQUEST,
-                            Json(json!({
-                                "error": "invalid record",
-                                "message": "record is invalid"
-                            })),
-                        ))
-                    }
-                    ErrorKind::Other => {
-                        Err(AppError::InternalServerError("error saving record"))
-                    }
-                    _ => {
-                        Err(AppError::InternalServerError("unable to save record"))
-                    }
-                }
-                _ => Err(AppError::SqlxError(error)),
-            }
-        }
-    };
+    let record_id = state
+        .repository
+        .commit_record(record)
+        .await
+        .map_err(AppError::from_commit_record_error)?;
 
     Ok((
         StatusCode::CREATED,
