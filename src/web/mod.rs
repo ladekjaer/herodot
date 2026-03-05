@@ -7,6 +7,7 @@ use axum::Router;
 use record_display::RecordDisplay;
 use crate::authentication::user_api;
 use crate::authentication::user_auth::AuthUser;
+use crate::web::record_display::{Bme280RecordDisplay, Ds18b20RecordDisplay};
 
 mod record_display;
 
@@ -100,6 +101,12 @@ async fn bme280(user: AuthUser, State(state): State<AppState>) -> impl IntoRespo
     context.insert("username", user.username());
 
     let records = state.repository.get_all_bme280_records().await.unwrap();
+    let records: Vec<Bme280RecordDisplay> = records
+        .into_iter()
+        .map(|r| r
+            .try_into()
+            .expect("the repository only delivers convertible records"))
+        .collect();
     context.insert("records", &records);
     let output = TERA.render("bme280.html", &context).unwrap();
     Html(output).into_response()
@@ -110,6 +117,12 @@ async fn ds18b20(user: AuthUser, State(state): State<AppState>) -> impl IntoResp
     context.insert("username", user.username());
 
     let records = state.repository.get_all_ds18b20_records().await.unwrap();
+    let records: Vec<Ds18b20RecordDisplay> = records
+        .into_iter()
+        .map(|r| r
+            .try_into()
+            .expect("the repository only delivers convertible records"))
+        .collect();
     context.insert("records", &records);
     let output = TERA.render("ds18b20.html", &context).unwrap();
     Html(output).into_response()
