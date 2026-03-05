@@ -76,7 +76,7 @@ Authorization: Bearer {{api_token}}
     });
 
     client.test("Response body", function () {
-        let expected = {"message": "record saved successfully", "id": "29b6ae59-8faa-4c42-b503-57cb10fe0508"};
+        let expected = {"message": "record saved successfully", "record_id": "29b6ae59-8faa-4c42-b503-57cb10fe0508"};
         let actual = response.body;
         client.assert(expected.message === actual.message, `Expected body '${expected.message}', actual '${actual.message}'`);
     });
@@ -117,7 +117,7 @@ Authorization: Bearer {{api_token}}
     });
 
     client.test("Response body", function () {
-        let expected = {"message": "record saved successfully", "id": "29b6ae59-8faa-4c42-b503-57cb10fe0508"};
+        let expected = {"message": "record saved successfully", "record_id": "29b6ae59-8faa-4c42-b503-57cb10fe0508"};
         let actual = response.body;
         client.assert(expected.message === actual.message, `Expected body '${expected.message}', actual '${actual.message}'`);
     });
@@ -306,7 +306,7 @@ Content-Type: application/json
 
 # curl -v -H 'access_key: 99ea32d6-e0dc-4b2c-9802-6eaeaf55bbac' -H 'Content-Type: application/json' http://localhost:8080/api/records/ds18b20\?from\=2026-03-03T22:00:00.000000Z
 GET http://localhost:8080/api/records/ds18b20?from=2026-03-03T22:00:00.000000Z
-access_key: 99ea32d6-e0dc-4b2c-9802-6eaeaf55bbac
+Authorization: Bearer {{api_token}}
 Content-Type: application/json
 
 ###
